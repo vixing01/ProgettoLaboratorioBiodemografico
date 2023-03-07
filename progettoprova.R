@@ -1,5 +1,6 @@
 #LABORATORIO BIO-DEM
 #Ancarani, Cagnani, Ferraro, Giribone
+#prove collegamenti! lalalalalalalalalalalala
 
 #Librerie
 library(shiny)
