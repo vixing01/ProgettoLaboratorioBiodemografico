@@ -22,9 +22,9 @@ library(XML)
 library(tmap)
 library(tmaptools)
 
-#Puliamo environment
-rm(list=ls())
+setwd("C:/Users/Virginia/OneDrive/Documents/MATERIALE UNIVERSITA'/LABORATORIO/tesina")
 
+#PULIZIA DEI DATI ####
 #Caricamento dati del dataset base
 skill <- read.csv("skills.csv") %>% select(LOCATION, Country, Skills, Value)
 
@@ -77,6 +77,7 @@ dati_cont$continent[dati_cont$Country=="Korea"]<-"Asia"
 dati_cont$continent[is.na(dati_cont$continent)==T]<-"Europe"
 
 dati <- dati_cont %>% filter(continent == "Europe")
+dati$GDP<-as.numeric(dati$GDP)
 
 
 #Caricamento dati serie temporale
@@ -96,7 +97,83 @@ serie_temp$continent[is.na(serie_temp$continent)==T]<-"Europe"
 #"serie_temp" per lavorare sulle serie temporali dei 30 paesi europei considerati
 
 
-# Analisi territoriale ####
+#TABELLE CON FREQUENZE RELATIVE ####
+
+#Funzione per suddividere in classi skills e knowledge
+taglio<-function(variabile){
+  cut(variabile, breaks = c(-1,-0.6, -0.2, 0.2, 0.6, 1), labels=c("forte surplus","surplus moderato","equilibrio","carenza moderata","forte carenza"))}
+
+library(dplyr)
+#Dataset con variabili in classi
+dati_c<- dati %>% 
+  select(4:16) %>% 
+  mutate_all(.funs = taglio) %>% 
+  rename_with(~ paste0(.,"_c"))
+dati_c<-cbind(dati,dati_c)
+dati_c<- dati_c %>%
+  mutate(mismatch_c=cut(`Qualification mismatch`,breaks=c(15,20,25,30,35,40,45),labels =c("15-20%","20-25%","25-30%","30-35%","35-40%","40-45%")),
+         over_c=cut(Overqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")),
+         under_c=cut(Underqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")))
+
+library(knitr)
+
+tab_mismatch <-round(prop.table(table(dati_c$mismatch_c))*100,1)
+tab_over <-round(prop.table(table(dati_c$over_c))*100,1)
+tab_under <-round(prop.table(table(dati_c$under_c))*100,1)
+
+tab_over_under<-cbind(tab_over, tab_under)
+tab_over_under<-kable(tab_over_under,"simple",col.names = c("Overqualification","Underqualification"))
+tab_over_under
+cumsum(tab_over)
+cumsum(tab_under)
+summary(dati_c$`Qualification mismatch`)
+summary(dati_c$Overqualification)
+summary(dati_c$Underqualification)
+#La maggior parte dei paesi ha una overqualification del 10-15% e una underqualification del 10-20%
+#L'overqualification risulta essere più spostata verso il basso: guardando le frequenze cumulate tra lo 0 e il 15% troviamo il 56.7% dei paesi per quanto riguarda l'over mentre solo il 36.7% per l'under
+#Entrambe le variabili, analizzate come continue, hanno il minimo intorno a 8 e il massimo intorno a 30; la media per over è 15.87 mentre per under è 17.32
+tab_mismatch<-kable(tab_mismatch, "simple", col.names = c("","Qualification mismatch"))
+tab_mismatch
+#Analizzando il mismatch, essendo una somma di over e under, si vede che la categoria più frequente è più elevata e corrisponde al 35-40%
+
+tab_arts <-round(prop.table(table(dati_c$`arts and humanities knowledge_c`))*100,1)
+tab_law <-round(prop.table(table(dati_c$`law and public safety knowledge_c`))*100,1)
+tab_medicine <-round(prop.table(table(dati_c$`medicine knowledge_c`))*100,1)
+tab_technology <-round(prop.table(table(dati_c$`production and technology knowledge_c`))*100,1)
+tab_scientific <-round(prop.table(table(dati_c$`scientific knowledge_c`))*100,1)
+
+tab_knowledge<-cbind(tab_arts,tab_law, tab_medicine, tab_technology, tab_scientific)
+tab_knowledge<-kable(tab_knowledge, "simple", col.names = c("Art","Law","Medicine","Technology","Scientific"))
+tab_knowledge
+#La categoria più frequente è sempre l'equilibrio; in nessun paese si rileva un forte surplus mentre nel 10% (Belgio, Danimarca e Spagna) si rileva una forte carenza di conoscenze mediche
+#Non sono presenti paesi con carenze riguardanti le conoscenze giuridiche e tecnologiche
+#Non sono presenti paesi con surplus di conoscenze scientifiche
+dati_c %>%  filter(`medicine knowledge_c`=="forte carenza") %>% select(Country)
+
+
+tab_communication <-round(prop.table(table(dati_c$`communication skills_c`))*100,1)
+tab_cognitive<-round(prop.table(table(dati_c$`cognitive skills_c`))*100,1)
+tab_digital <-round(prop.table(table(dati_c$`digital skills_c`))*100,1)
+tab_physical <-round(prop.table(table(dati_c$`physical skills_c`))*100,1)
+tab_social <-round(prop.table(table(dati_c$`social skills_c`))*100,1)
+
+tab_skills<-cbind(tab_communication, tab_cognitive,tab_digital,tab_physical,tab_social)
+tab_skills<-kable(tab_skills,"simple",col.names = c("Communication","Cognitive","Digital","Physical","Social"))
+tab_skills
+#La categoria più frequente è sempre l'equilibrio e nessuno dei paesi considerati presenta una forte carenza.
+#Un forte surplus si ha nel campo delle abilità fisiche nel 6.7% dei paesi (Belgio ed Estonia)
+#Non sono presenti paesi con carenze nel campo delle abilità comunicative
+dati_c %>%  filter(`physical skills_c`=="forte surplus") %>% select(Country)
+
+summary(dati$GDP)
+#Abbiamo tutti paesi ad alto reddito avendo considerato solo paesi europei, per cui non ha senso suddividere il GDP in classi
+dati_c %>% select(GDP) %>% summarize_all(.funs= list(media  = ~mean(x=., na.rm=T), 
+                                                     dev.std = ~sd(x=., na.rm=T)))
+#La media è 47230 mentre la deviazione standard 18948
+
+
+#ANALISI TERRITORIALE ####
+#Fonte dati spaziali: Eurostat
 geodata <-get_eurostat_geospatial(nuts_level=0) 
 
 
@@ -135,66 +212,267 @@ geodata_link<- geodata %>%
 
 map0 <- tm_shape(geodata_link) +
   tm_fill("lightgrey") +
-  tm_grid() #Creates a tmap-element that draws coordinate grid lines
-map0
+  tm_grid()
 
 bb(geodata)
 
-bb_cont<-bb(geodata,xlim=c(-24,45), ylim=c(35,71) ) # redefine the bounding box
+bb_cont<-bb(geodata,xlim=c(-24,51), ylim=c(35,71) ) # redefine the bounding box
 
+#Mappa dell'Europa
 map1 <- tm_shape(geodata_link, bbox=bb_cont) + # bb = bounding box
   tm_polygons() +
   tm_fill("lightgrey")
 map1
 
-taglio<-function(variabile){
-  cut(variabile, breaks = c(-1,-0.6, -0.2, 0.2, 0.6, 1), labels=c("forte surplus","surplus moderato","equilibrio","carenza moderata","forte carenza"))}
+mapdata <- geodata_link %>%  left_join(dati_c, by="LOCATION")
 
-mapdata <- geodata_link %>%  left_join(dati, by="LOCATION") %>% 
-  mutate(mismatch_c=cut(`Qualification mismatch`,breaks=c(15,20,25,30,35,40,45),labels =c("15-20%","20-25%","25-30%","30-35%","35-40%","40-45%")),
-         over_c=cut(Overqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","35-40%")),
-         under_c=cut(Underqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","35-40%")),
-         cognitive_c=taglio(`cognitive skills`), communication_c=taglio(`communication skills`),digital_c=taglio(`digital skills`), physical_c=taglio(`physical skills`),ciao=taglio(dati[,4]))
-view(mapdata)
-summary(dati$`Qualification mismatch`)
-summary(dati$Overqualification)
-summary(dati$Underqualification)
-
-cartina<-function(variabile, colore, titolo){tm_shape(mapdata, bbox=bb_cont) +
-    tm_polygons(variabile,title=titolo, palette = colore, border.col = "black")  +
-    tm_layout(legend.title.size = 1.2,
+#Funzione per creare le mappe
+cartina<-function(variabile, colore, titolo_leg, valore,titolo){tm_shape(mapdata, bbox=bb_cont) +
+    tm_polygons(variabile,title=titolo_leg, palette = colore, border.col = "black")  +
+    tm_layout(title = titolo,
+              title.size = 1.2,
+              title.position = c("left","top"),
+              legend.title.size = 1.2,
               legend.text.size = 0.8,
               legend.position = c("right","center"), 
               legend.bg.color = "#ffffff00",
               legend.bg.alpha = 1,
-              legend.only = )}
+              legend.show = valore)}
 
-map_mismatch<-cartina("mismatch_c", "Blues", "Qualification mismatch")
+legenda_skills<-tm_shape(mapdata, bbox=bb_cont) +
+  tm_polygons("cognitive skills_c",title="Legenda", palette = "-RdYlGn", border.col = "black")  +
+  tm_layout(legend.title.size = 1.2,
+            legend.text.size = 0.8,
+            legend.position = c("center","center"), 
+            legend.bg.color = "#ffffff00",
+            legend.bg.alpha = 1,
+            legend.only = TRUE)
+
+map_mismatch<-cartina("mismatch_c", "Blues", "Qualification mismatch", TRUE," ")
 map_mismatch
-map_over<-cartina("over_c", "Greens", "Overqualification")
-map_under<-cartina("under_c", "Reds", "Underqualification")
-tmap_arrange(map_over,map_under)
+
+mapdata %>% filter(mismatch_c=="40-45%") %>% select(Country)
+#I paesi che presentano il maggior livello di mismatch sono Grecia, Spagna, Irlanda, Portogallo, Turchia e Regno Unito
+mapdata %>% filter(mismatch_c=="15-20%") %>% select(Country)
+#Il paese con il minore livello di mismatch è la Repubblica Ceca
+
+map_over<-cartina("over_c", "Greens", "Overqualification",TRUE,"")
+map_under<-cartina("under_c", "Reds", "Underqualification",TRUE,"")
+tmap_arrange(map_over,map_under, ncol=2)
+
+mapdata %>% filter(over_c=="5-10%") %>% select(Country)
+#I paesi con minor overqualification sono Bulgaria, Repubblica Ceca, Finlandia, Ungheria e Polonia
+mapdata %>% filter(over_c=="25-30%") %>% select(Country)
+#I paesi con maggior overqualification (25-30%) sono Grecia, Portogallo e Turchia
+mapdata %>% filter(under_c=="5-10%") %>% select(Country)
+#I paesi con minor underqualification sono Repubblica Ceca e Slovacchia
+mapdata %>% filter(under_c=="30-35%") %>% select(Country)
+#Il paese con maggior underqualification è l'Irlanda
 
 library(RColorBrewer)
-map_cognitive<-cartina("cognitive_c", "-RdYlGn", "Cognitive skills")
-map_communication<-cartina("communication_c", "-RdYlGn", "Communication skills")
-map_digital<-cartina("digital_c", "-RdYlGn", "Digital skills")
-map_physical<-cartina("physical_c", "-RdYlGn", "Physical skills")
-tmap_arrange(map_cognitive, map_communication, nrow=2)
-?tmap_arrange
+colnames(mapdata)[33:45]
+map_arts<-cartina("arts and humanities knowledge_c", "-RdYlGn", "Art knowledge",FALSE, "Art knowledge")
+map_law<-cartina("law and public safety knowledge_c", "-RdYlGn", "Law knowledge",FALSE, "Law knowledge")
+map_medicine<-cartina("medicine knowledge_c", "-RdYlGn", "Medicine knowledge",FALSE, "Medicine knowledge")
+map_technology<-cartina("production and technology knowledge_c", "-RdYlGn", "Technology knowledge",FALSE, "Technology knowledge")
+map_scientific<-cartina("scientific knowledge_c", "-RdYlGn", "Scientific knowledge",FALSE, "Scientific knowledge")
+
+map_communication<-cartina("communication skills_c", "-RdYlGn", "Communication skills",FALSE,"Communication skills")
+map_cognitive<-cartina("cognitive skills_c", "-RdYlGn", "Cognitive skills",FALSE, "Cognitive skills")
+map_digital<-cartina("digital skills_c", "-RdYlGn", "Digital skills",FALSE,"Digital skills")
+map_physical<-cartina("physical skills_c", "-RdYlGn", "Physical skills",FALSE,"Physical skills")
+map_social<-cartina("social skills_c", "-RdYlGn", "Social skills",FALSE, "Social skills")
+
+tmap_arrange(map_communication, map_cognitive, map_digital, map_physical, map_social, legenda_skills, ncol=3)
+tmap_arrange(map_arts,map_law, map_medicine,map_technology,map_scientific, legenda_skills)
 
 
-#Tabelle: guarda lezione 4
-#Correlazione
+#CORRELAZIONE ####
 dati$GDP<-as.numeric(dati$GDP)
-matrice_corr<-dati %>% select(!(LOCATION:continent)) %>%   cor(use="complete.obs")
-round(matrice_corr,2)
 
-corrplot(matrice_corr, method="color")
-corrplot(corMAT, type="upper")
-corrplot(matrice_corr, type="upper", order="hclust") # for hierarchical clustering order
+dati_senza<-dati %>% select(!c(LOCATION, Country, continent, `business processes`,`resource management`,`training and education`,`Field-of-study mismatch`))
+#In questo dataset non sono presenti valori mancanti e abbiamo tutte variabili quantitative
+
+matrice_corr<-dati_senza %>% cor()
+round(matrice_corr,2)[,14] #Siamo interessate alla correlazione delle nostre variabili con il GDP
+#La correlazione più elevata si ha con Underqualification (0.38)
+
+#Correlazione delle variabili knowledge
+round(matrice_corr,2)[c(1,5,6,8,9),14]
+#Si va da una correlazione di 0.32 con le conoscenze giuridiche a una pressochè indipendenza con le conoscenze tecnologiche
+
+#Correlazione con le variabili skills
+round(matrice_corr,2)[c(2,3,4,7,10),14]
+#Digital, cognitive e physical skills sono pressochè indipendenti mentre la correlazione più rilevante (0.21) si ha per le skill comunicative
+
+#Correlazione con over, under e mismatch
+round(matrice_corr,2)[11:13,14]
+#La correlazione è positiva per l'underqualification mentre è debolmente negativa per l'overqualification
+#Possibile interpretazione: sprecare persone che hanno studiato mettendole a fare lavori al di sotto della loro preparazione non è positivo per il PIL
+#Mettere persone non preparate a fare lavori per cui non sono qualificate ha una parziale correlazione positiva con il PIL, ma forse per il semplice fatto che nei paesi con elevata underqualification l'istruzione superiore è meno diffusa
+#Per valutare questa interpretazione, però, bisognerebbe avere dei dati: CONTROLLA SE POTREBBE ESSERE UN CONFONDENTE
+
+corrplot(matrice_corr, method="color",type = "upper")
 
 
-?as
+#Correlazione con l'istruzione?####
+browseURL("https://ec.europa.eu/eurostat/databrowser/view/EDAT_LFSE_03__custom_5173078/default/table?lang=en")
+dati_prova<-dati[order(-dati$Underqualification),]
+dati_prova<- dati_prova %>% select(LOCATION, Country,Underqualification,Overqualification)
 
+istruzione<-read.csv("istruzione.csv") #upper-secondary, post-secondary non tertiary and tertiary education
+istruzione<-istruzione %>% select(geo, OBS_VALUE) %>% 
+  mutate(LOCATION=recode(geo,
+                         "BG"= "BGR" ,
+                         "CH"= "CHE" ,
+                         "CY"= "CYP" ,
+                         "CZ"= "CZE" ,
+                         "BE"= "BEL" ,
+                         "AT"= "AUT" ,
+                         "DE"="DEU",
+                         "DK"="DNK",
+                         "EE"="EST",
+                         "EL"="GRC",
+                         "ES"="ESP",
+                         "FI"="FIN",
+                         "FR"="FRA",
+                         "HU"="HUN",
+                         "IE"="IRL",
+                         "IS"="ISL",
+                         "IT"="ITA",
+                         "LT"="LTU",
+                         "LU"="LUX",
+                         "LV"="LVA",
+                         "NL"="NLD",
+                         "NO"="NOR",
+                         "PL"="POL",
+                         "PT"="PRT",
+                         "RO"="ROU",
+                         "SE"="SWE",
+                         "SI"="SVN",
+                         "SK"="SVK",
+                         "TR"="TUR",
+                         "UK"="GBR")) %>% 
+  right_join(dati_prova, by="LOCATION") %>%
+  rename("%istruzione"=OBS_VALUE)
+
+cor_ist<-istruzione %>% select(`%istruzione`,Overqualification,Underqualification) %>% cor()
+round(cor_ist,2)
+#La percentuale di istruzione risulta pressochè indipendente dall'underqualification mentre negativamente correlata con over
+#Nei paesi in cui più persone vengono messe a fare lavori più "semplici" la percentuale di persone con istruzione almeno secondaria è più bassa
+#Strano
+
+
+tertiary<-read.csv("tertiary.csv") #educazione terziaria
+tertiary<-tertiary %>% select(geo, OBS_VALUE) %>% 
+  mutate(LOCATION=recode(geo,
+                         "BG"= "BGR" ,
+                         "CH"= "CHE" ,
+                         "CY"= "CYP" ,
+                         "CZ"= "CZE" ,
+                         "BE"= "BEL" ,
+                         "AT"= "AUT" ,
+                         "DE"="DEU",
+                         "DK"="DNK",
+                         "EE"="EST",
+                         "EL"="GRC",
+                         "ES"="ESP",
+                         "FI"="FIN",
+                         "FR"="FRA",
+                         "HU"="HUN",
+                         "IE"="IRL",
+                         "IS"="ISL",
+                         "IT"="ITA",
+                         "LT"="LTU",
+                         "LU"="LUX",
+                         "LV"="LVA",
+                         "NL"="NLD",
+                         "NO"="NOR",
+                         "PL"="POL",
+                         "PT"="PRT",
+                         "RO"="ROU",
+                         "SE"="SWE",
+                         "SI"="SVN",
+                         "SK"="SVK",
+                         "TR"="TUR",
+                         "UK"="GBR")) %>% 
+  right_join(dati_prova, by="LOCATION") %>% 
+  rename("%tertiary"=OBS_VALUE)
+cor_ter<-tertiary %>% select(`%tertiary`,Overqualification,Underqualification) %>% cor()
+
+round(cor_ter,2)
+#I paesi con più persone con educazione terziaria hanno anche più underqualification
+#I paesi con più persone con educazione terziaria hanno un'overqualification più bassa
+#Molto strano
+
+#Se le cose stanno così forse non ha senso tirare in ballo la diffusione dell'istruzione
+
+#MODELLO MULTIVARIATO: prova####
+pkg <- c(
+  "shiny", "tidyverse", "ggpubr", "haven",
+  "tidymodels", "broom", "devtools",
+  "ggiraphExtra", "dotwhisker", "texreg", "margins",
+  "ggeffects")
+sapply(pkg, require, character.only = TRUE)
+
+colnames(dati_senza)
+
+all<-lm(GDP~., data = dati_senza)
+summary(all)
+
+mod0<-lm(GDP~1, data = dati_senza)
+summary(mod0)
+
+stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
+
+mult_mod_skills<-lm(GDP~ `cognitive skills`+`communication skills`+`digital skills`+`physical skills`+`social skills`, data=dati_senza)
+tidy(mult_mod_skills)
+stats::step(mult_mod_skills, scope=list(lower=mod0, upper=mult_mod_skills), direction="backward")
+#L'associazione tra il GDP e le skills non è abbastanza forte: nel modello multivariato nessuno dei coefficienti associato ad esse risulta essere significativo
+#Utilizzando la selezione backward il modello migliore risulta essere quello nullo
+
+mult_mod_knowledge<-lm(GDP~`arts and humanities knowledge`+`law and public safety knowledge`+`medicine knowledge`+`production and technology knowledge`+`scientific knowledge`, data=dati_senza)
+tidy(mult_mod_knowledge)
+stats::step(mult_mod_knowledge, scope=list(lower=mod0, upper=mult_mod_knowledge), direction="backward")
+#In questo caso utilizzando la selezione backward viene mantenuta solo la variabile "law and public safety knowledge"
+
+mult_mod_mismatch<-lm(GDP~Overqualification+Underqualification, data = dati_senza)
+tidy(mult_mod_mismatch)
+#In questo caso l'unico coefficiente significativo risulta essere quello relativo all'Underqualification, che come avevamo già visto è la variabile con la maggiore correlazione con il GDP
+#Interpretazione: boh
+
+#MODELLO UNIVARIATO CON UNDERQUALIFICATION
+
+mod_under<-lm(GDP~Underqualification, data=dati_senza)
+tidy(mod_under)
+summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene ai dati: R^2=0.14
+
+dati_senza%>%
+  ggplot(aes(x=Underqualification, y=GDP)) +
+  geom_point() +
+  theme_bw()+
+  labs(
+    title = "GDP e Underqualification",
+    x= "Underqualification",
+    y= "GDP per capita",
+    caption = "Dati 2019")+
+  geom_smooth(method=lm, se=FALSE, col="orangered2", fullrange = TRUE) +
+  scale_x_continuous(limits=c(0, 50))+
+  scale_y_continuous(limits=c(0 ,150000))+
+  geom_hline(yintercept = 0) +
+  geom_hline(yintercept= 23873) +
+  geom_vline(xintercept = 0)
+
+
+#'Commento per me:
+#'Overqualification: metti persone che hanno studiato a fare lavori manuali
+#'Underqualification: metti persone che non hanno studiato a fare lavori complessi
+#'Domanda di ricerca: Il PIL di un paese è influenzato da una giusta assegnazione dei lavoratori al loro ambito e in base alla loro qualifica?
+
+
+#'Tabelle: guarda lezione 4
+#'Lezione 4: grafici nei quali si tiene conto di 3 variabili delle quali una categorica
+#'Grafici che hanno sia i punti sia la linea e modifica della legenda
+#'Costruzione degli intervalli di confidenza
+#'Grafici di densità: questi penso non ci servano
 
