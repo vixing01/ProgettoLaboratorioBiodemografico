@@ -1,6 +1,5 @@
 #LABORATORIO BIO-DEM
 #Ancarani, Cagnani, Ferraro, Giribone
-#ciao di nuovo
 
 #Librerie
 library(shiny)
@@ -22,6 +21,9 @@ library(sf)
 library(XML)
 library(tmap)
 library(tmaptools)
+library(knitr)
+library(dplyr)
+library(RColorBrewer)
 
 setwd("C:/Users/Virginia/OneDrive/Documents/MATERIALE UNIVERSITA'/LABORATORIO/tesina")
 
@@ -79,6 +81,7 @@ dati_cont$continent[is.na(dati_cont$continent)==T]<-"Europe"
 
 dati <- dati_cont %>% filter(continent == "Europe")
 dati$GDP<-as.numeric(dati$GDP)
+dati<-dati[,-c(5,13,16,17)]
 
 
 #Caricamento dati serie temporale
@@ -91,11 +94,9 @@ temp_wide<- temp %>%
     values_from = "Value"
   )
 
-serie_temp <- left_join(temp_wide, continenti, by="Country") %>% relocate (continent, .after = Country)
-serie_temp$continent[is.na(serie_temp$continent)==T]<-"Europe"
 
 #Noi utilizzaremo il dataset "dati" per confronti tra variabili e il dataset 
-#"serie_temp" per lavorare sulle serie temporali dei 30 paesi europei considerati
+#"temp" per lavorare sulle serie temporali dei 30 paesi europei considerati
 
 #Grafici semplici ####
 
@@ -178,6 +179,13 @@ temporale<-temp  %>%
         caption="Fonte dati: OECD.")
 
 temporale
+view(temp_wide)
+
+dati_temporale<-temp_wide %>% select("LOCATION", "2013")%>%
+  inner_join(dati,by="LOCATION")
+dati_temporale<-dati_temporale %>% select(!c(Country, LOCATION,continent))
+round(cor(dati_temporale),2)[,1]
+
 
 #Tutti insieme (è un casino)
 temp0<-  temp %>% ggplot( aes(x=Year))+
@@ -187,13 +195,10 @@ temp0<-  temp %>% ggplot( aes(x=Year))+
     y= "Valore",
     title="Proporzione di lavoratori correttamente impiegati",
     subtitle="Anni 2003-2013",
-    caption= "Source: OECD")
-temp0
-
-temp1<-temp0 +
+    caption= "Source: OECD") +
   geom_point(aes(y=Value, col=Country))+
   geom_line(aes(y=Value, col=Country)) + xlim(2002, 2014)
-temp1
+temp0
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -201,10 +206,10 @@ temp1
 taglio<-function(variabile){
   cut(variabile, breaks = c(-1,-0.6, -0.2, 0.2, 0.6, 1), labels=c("forte surplus","surplus moderato","equilibrio","carenza moderata","forte carenza"))}
 
-library(dplyr)
+
 #Dataset con variabili in classi
 dati_c<- dati %>% 
-  select(4:16) %>% 
+  select(4:13) %>% 
   mutate_all(.funs = taglio) %>% 
   rename_with(~ paste0(.,"_c"))
 dati_c<-cbind(dati,dati_c)
@@ -213,7 +218,7 @@ dati_c<- dati_c %>%
          over_c=cut(Overqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")),
          under_c=cut(Underqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")))
 
-library(knitr)
+
 
 tab_mismatch <-round(prop.table(table(dati_c$mismatch_c))*100,1)
 tab_over <-round(prop.table(table(dati_c$over_c))*100,1)
@@ -273,7 +278,6 @@ dati_c %>% select(GDP) %>% summarize_all(.funs= list(media  = ~mean(x=., na.rm=T
 #ANALISI TERRITORIALE ####
 #Fonte dati spaziali: Eurostat
 geodata <-get_eurostat_geospatial(nuts_level=0) 
-
 
 geodata_link<- geodata %>% 
   mutate(LOCATION=recode(NUTS_ID,
@@ -367,7 +371,6 @@ mapdata %>% filter(under_c=="5-10%") %>% select(Country)
 mapdata %>% filter(under_c=="30-35%") %>% select(Country)
 #Il paese con maggior underqualification ? l'Irlanda
 
-library(RColorBrewer)
 colnames(mapdata)[33:45]
 map_arts<-cartina("arts and humanities knowledge_c", "-RdYlGn", "Art knowledge",FALSE, "Art knowledge")
 map_law<-cartina("law and public safety knowledge_c", "-RdYlGn", "Law knowledge",FALSE, "Law knowledge")
@@ -386,9 +389,7 @@ tmap_arrange(map_arts,map_law, map_medicine,map_technology,map_scientific, legen
 
 
 #CORRELAZIONE ####
-dati$GDP<-as.numeric(dati$GDP)
-
-dati_senza<-dati %>% select(!c(LOCATION, Country, continent, `business processes`,`resource management`,`training and education`,`Field-of-study mismatch`))
+dati_senza<-dati %>% select(!c(LOCATION, Country, continent))
 #In questo dataset non sono presenti valori mancanti e abbiamo tutte variabili quantitative
 
 matrice_corr<-dati_senza %>% cor()
@@ -524,18 +525,18 @@ summary(mod0)
 stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
 
 mult_mod_skills<-lm(GDP~ `cognitive skills`+`communication skills`+`digital skills`+`physical skills`+`social skills`, data=dati_senza)
-tidy(mult_mod_skills)
+summary(mult_mod_skills)
 stats::step(mult_mod_skills, scope=list(lower=mod0, upper=mult_mod_skills), direction="backward")
 #L'associazione tra il GDP e le skills non ? abbastanza forte: nel modello multivariato nessuno dei coefficienti associato ad esse risulta essere significativo
 #Utilizzando la selezione backward il modello migliore risulta essere quello nullo
 
 mult_mod_knowledge<-lm(GDP~`arts and humanities knowledge`+`law and public safety knowledge`+`medicine knowledge`+`production and technology knowledge`+`scientific knowledge`, data=dati_senza)
-tidy(mult_mod_knowledge)
+summary(mult_mod_knowledge)
 stats::step(mult_mod_knowledge, scope=list(lower=mod0, upper=mult_mod_knowledge), direction="backward")
 #In questo caso utilizzando la selezione backward viene mantenuta solo la variabile "law and public safety knowledge"
 
 mult_mod_mismatch<-lm(GDP~Overqualification+Underqualification, data = dati_senza)
-tidy(mult_mod_mismatch)
+summary(mult_mod_mismatch)
 #In questo caso l'unico coefficiente significativo risulta essere quello relativo all'Underqualification, che come avevamo gi? visto ? la variabile con la maggiore correlazione con il GDP
 #Interpretazione: boh
 
@@ -574,4 +575,4 @@ dati_senza%>%
 #'Costruzione degli intervalli di confidenza
 #'Grafici di densit?: questi penso non ci servano
 
-#Riga di commento
+
