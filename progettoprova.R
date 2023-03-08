@@ -1,6 +1,7 @@
 #LABORATORIO BIO-DEM
 #Ancarani, Cagnani, Ferraro, Giribone
 
+rm(list=ls())
 #Librerie
 library(shiny)
 library(tidyverse)
@@ -187,18 +188,42 @@ dati_temporale<-dati_temporale %>% select(!c(Country, LOCATION,continent))
 round(cor(dati_temporale),2)[,1]
 
 
-#Tutti insieme (è un casino)
-temp0<-  temp %>% ggplot( aes(x=Year))+
+#Tutti insieme
+temp <- temp %>% mutate(
+  GEO = case_when(
+    Country == "Denmark" | Country == "Finland" |
+      Country == "Iceland" | Country == "Ireland" | Country == "Norway" |
+      Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
+      Country == "Latvia" | Country == "Lithuania" ~ 1,
+    Country == "Greece" | Country == "Italy" | Country == "Portugal" |
+      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
+      Country == "Slovenia" | Country == "Malta" ~ 2,
+    Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
+      Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
+    Country == "Austria" | Country == "Belgium" | Country == "France" |
+      Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
+      Country == "Switzerland" ~ 4
+  ), 
+  GEO = factor(GEO, 1:4, c("North", "South", "East", "West"))
+)
+
+temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
+  summarize(Value=mean(Value, na.rm=T),
+            STD=sd(Value, na.rm=T))
+
+#ATTENZIONE, la deviazione standard non va...
+
+temp_plot<-  temp_geo %>%ggplot( aes(x=Year))+
   theme_bw()+
   labs(
     x="Anno",
     y= "Valore",
     title="Proporzione di lavoratori correttamente impiegati",
     subtitle="Anni 2003-2013",
-    caption= "Source: OECD") +
-  geom_point(aes(y=Value, col=Country))+
-  geom_line(aes(y=Value, col=Country)) + xlim(2002, 2014)
-temp0
+    caption= "Source: OECD")+
+  geom_point(aes(y=Value, col=GEO))+
+  geom_line(aes(y=Value, col=GEO)) + xlim(2002, 2014)
+temp_plot
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -206,10 +231,10 @@ temp0
 taglio<-function(variabile){
   cut(variabile, breaks = c(-1,-0.6, -0.2, 0.2, 0.6, 1), labels=c("forte surplus","surplus moderato","equilibrio","carenza moderata","forte carenza"))}
 
-
+library(dplyr)
 #Dataset con variabili in classi
 dati_c<- dati %>% 
-  select(4:13) %>% 
+  select(4:16) %>% 
   mutate_all(.funs = taglio) %>% 
   rename_with(~ paste0(.,"_c"))
 dati_c<-cbind(dati,dati_c)
@@ -218,7 +243,7 @@ dati_c<- dati_c %>%
          over_c=cut(Overqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")),
          under_c=cut(Underqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")))
 
-
+library(knitr)
 
 tab_mismatch <-round(prop.table(table(dati_c$mismatch_c))*100,1)
 tab_over <-round(prop.table(table(dati_c$over_c))*100,1)
