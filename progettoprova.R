@@ -1,7 +1,7 @@
 #LABORATORIO BIO-DEM
 #Ancarani, Cagnani, Ferraro, Giribone
-#ciao di nuovo
 
+rm(list=ls())
 #Librerie
 library(shiny)
 library(tidyverse)
@@ -179,21 +179,42 @@ temporale<-temp  %>%
 
 temporale
 
-#Tutti insieme (è un casino)
-temp0<-  temp %>% ggplot( aes(x=Year))+
+#Tutti insieme
+temp <- temp %>% mutate(
+  GEO = case_when(
+    Country == "Denmark" | Country == "Finland" |
+      Country == "Iceland" | Country == "Ireland" | Country == "Norway" |
+      Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
+      Country == "Latvia" | Country == "Lithuania" ~ 1,
+    Country == "Greece" | Country == "Italy" | Country == "Portugal" |
+      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
+      Country == "Slovenia" | Country == "Malta" ~ 2,
+    Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
+      Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
+    Country == "Austria" | Country == "Belgium" | Country == "France" |
+      Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
+      Country == "Switzerland" ~ 4
+  ), 
+  GEO = factor(GEO, 1:4, c("North", "South", "East", "West"))
+)
+
+temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
+  summarize(Value=mean(Value, na.rm=T),
+            STD=sd(Value, na.rm=T))
+
+#ATTENZIONE, la deviazione standard non va...
+
+temp_plot<-  temp_geo %>%ggplot( aes(x=Year))+
   theme_bw()+
   labs(
     x="Anno",
     y= "Valore",
     title="Proporzione di lavoratori correttamente impiegati",
     subtitle="Anni 2003-2013",
-    caption= "Source: OECD")
-temp0
-
-temp1<-temp0 +
-  geom_point(aes(y=Value, col=Country))+
-  geom_line(aes(y=Value, col=Country)) + xlim(2002, 2014)
-temp1
+    caption= "Source: OECD")+
+  geom_point(aes(y=Value, col=GEO))+
+  geom_line(aes(y=Value, col=GEO)) + xlim(2002, 2014)
+temp_plot
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
