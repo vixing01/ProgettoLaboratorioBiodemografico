@@ -3,28 +3,14 @@
 
 rm(list=ls())
 #Librerie
-library(shiny)
-library(tidyverse)
-library(ggplot2)
-library(ggthemes)
-library(forcats)
-library(gapminder)
-library(ggridges)
-library(viridis)
-library(haven)
-library(knitr)
-library(corrplot)
-library(GGally)
-library(devtools)
-library(eurostat)
-library(rvest)
-library(sf)
-library(XML)
-library(tmap)
-library(tmaptools)
-library(knitr)
-library(dplyr)
-library(RColorBrewer)
+
+pkg <- c("shiny", "tidyverse", "ggpubr","ggplot2","ggthemes","forcats","gapminder",
+  "haven",  "tidymodels", "broom", "devtools","ggridges","viridis",
+  "ggiraphExtra", "dotwhisker", "texreg", "margins","haven","knitr","corrplot",
+  "ggeffects","GGally","devtools","eurostat","rvest","sf","XML","tmap","tmaptools",
+  "dplyr","RColorBrewer")
+sapply(pkg, require, character.only = TRUE)
+rm(list=ls())
 
 setwd("C:/Users/Virginia/OneDrive/Documents/MATERIALE UNIVERSITA'/LABORATORIO/tesina")
 
@@ -532,13 +518,6 @@ round(cor_ter,2)
 #Se le cose stanno cos? forse non ha senso tirare in ballo la diffusione dell'istruzione
 
 #MODELLO MULTIVARIATO: prova####
-pkg <- c(
-  "shiny", "tidyverse", "ggpubr", "haven",
-  "tidymodels", "broom", "devtools",
-  "ggiraphExtra", "dotwhisker", "texreg", "margins",
-  "ggeffects")
-sapply(pkg, require, character.only = TRUE)
-
 colnames(dati_senza)
 
 all<-lm(GDP~., data = dati_senza)
@@ -548,6 +527,9 @@ mod0<-lm(GDP~1, data = dati_senza)
 summary(mod0)
 
 stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
+
+summary(lm(formula = GDP ~ `law and public safety knowledge` + `physical skills` + 
+             Overqualification + `Qualification mismatch`, data = dati_senza))
 
 mult_mod_skills<-lm(GDP~ `cognitive skills`+`communication skills`+`digital skills`+`physical skills`+`social skills`, data=dati_senza)
 summary(mult_mod_skills)
@@ -565,7 +547,7 @@ summary(mult_mod_mismatch)
 #In questo caso l'unico coefficiente significativo risulta essere quello relativo all'Underqualification, che come avevamo gi? visto ? la variabile con la maggiore correlazione con il GDP
 #Interpretazione: boh
 
-#MODELLO UNIVARIATO CON UNDERQUALIFICATION
+#MODELLO UNIVARIATO CON UNDERQUALIFICATION - controllare se GDP ha una distribuzione normale
 
 mod_under<-lm(GDP~Underqualification, data=dati_senza)
 tidy(mod_under)
@@ -592,12 +574,5 @@ dati_senza%>%
 #'Overqualification: metti persone che hanno studiato a fare lavori manuali
 #'Underqualification: metti persone che non hanno studiato a fare lavori complessi
 #'Domanda di ricerca: Il PIL di un paese ? influenzato da una giusta assegnazione dei lavoratori al loro ambito e in base alla loro qualifica?
-
-
-#'Tabelle: guarda lezione 4
-#'Lezione 4: grafici nei quali si tiene conto di 3 variabili delle quali una categorica
-#'Grafici che hanno sia i punti sia la linea e modifica della legenda
-#'Costruzione degli intervalli di confidenza
-#'Grafici di densit?: questi penso non ci servano
 
 
