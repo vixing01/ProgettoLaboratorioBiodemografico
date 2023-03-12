@@ -1,30 +1,14 @@
 #LABORATORIO BIO-DEM
 #Ancarani, Cagnani, Ferraro, Giribone
 
-rm(list=ls())
 #Librerie
-library(shiny)
-library(tidyverse)
-library(ggplot2)
-library(ggthemes)
-library(forcats)
-library(gapminder)
-library(ggridges)
-library(viridis)
-library(haven)
-library(knitr)
-library(corrplot)
-library(GGally)
-library(devtools)
-library(eurostat)
-library(rvest)
-library(sf)
-library(XML)
-library(tmap)
-library(tmaptools)
-library(knitr)
-library(dplyr)
-library(RColorBrewer)
+pkg <- c("shiny", "tidyverse", "ggpubr","ggplot2","ggthemes","forcats","gapminder",
+  "haven",  "tidymodels", "broom", "devtools","ggridges","viridis",
+  "ggiraphExtra", "dotwhisker", "texreg", "margins","haven","knitr","corrplot",
+  "ggeffects","GGally","devtools","eurostat","rvest","sf","XML","tmap","tmaptools",
+  "dplyr","RColorBrewer")
+sapply(pkg, require, character.only = TRUE)
+rm(list=ls())
 
 setwd("C:/Users/Virginia/OneDrive/Documents/MATERIALE UNIVERSITA'/LABORATORIO/tesina")
 
@@ -50,15 +34,13 @@ gdp <- read.csv("gdp_worldbank.csv") %>%
 skill_wide<- skill %>%
   pivot_wider(
     names_from = "Skills",
-    values_from = "Value"
-  )
+    values_from = "Value")
 
 
 mismatch_wide<- mismatch %>%
   pivot_wider(
     names_from = "Mismatch",
-    values_from = "Value"
-  )
+    values_from = "Value")
 
 
 #Uniamo
@@ -92,8 +74,7 @@ temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
 temp_wide<- temp %>%
   pivot_wider(
     names_from = "Year",
-    values_from = "Value"
-  )
+    values_from = "Value")
 
 
 #Noi utilizzaremo il dataset "dati" per confronti tra variabili e il dataset 
@@ -169,26 +150,29 @@ digi_techno
 
 #per Paese
 
-temporale<-temp  %>% 
+grafico_temporale<-temp  %>% 
   ggplot(aes(x=Year, y=Value))+
-  theme_minimal()+
   geom_line(col="darkred") +
-  facet_wrap(~Country, ncol=7)+
+  theme_minimal()+
+  facet_wrap(~Country, ncol=6)+
   labs( y="Proportion of workers who are well matched", x="Anni",
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
         subtitle="Con lavoratore correttamente impiegato si intened lavoratore impiegato nel campo per cui si Ã¨ formato", 
-        caption="Fonte dati: OECD.")
+        caption="Fonte dati: OECD.")+
+  scale_x_continuous(breaks=NULL) #altrimenti si può mettere come breaks 2003 e 2013 ma rimangono sempre un pochino sovrapposte le scritte
 
-temporale
-view(temp_wide)
+grafico_temporale #ha davvero senso tenere Malta?
 
+#In base a cosa raggruppare questi paesi?
 dati_temporale<-temp_wide %>% select("LOCATION", "2013")%>%
   inner_join(dati,by="LOCATION")
 dati_temporale<-dati_temporale %>% select(!c(Country, LOCATION,continent))
 round(cor(dati_temporale),2)[,1]
+#La correlazione con il GDP non è abbastanza forte da giustificare un raggruppamento dei paesi sulla base di esso
+#Per questo motivo verranno raggruppati sulla base della loro posizione geografica
 
-
-#Tutti insieme
+#Assegniamo ogni paese alla sua macro-regione
+temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
 temp <- temp %>% mutate(
   GEO = case_when(
     Country == "Denmark" | Country == "Finland" |
@@ -207,13 +191,13 @@ temp <- temp %>% mutate(
   GEO = factor(GEO, 1:4, c("North", "South", "East", "West"))
 )
 
+#Calcoliamo media e deviazione standard per ogni macro-regione
 temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
-  summarize(Value=mean(Value, na.rm=T),
-            STD=sd(Value, na.rm=T))
+  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
+                           STD=~sd(Value, na.rm=T),
+                           N = ~sum(!is.na(Value))))
 
-#ATTENZIONE, la deviazione standard non va...
-
-temp_plot<-  temp_geo %>%ggplot( aes(x=Year))+
+temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
   theme_bw()+
   labs(
     x="Anno",
@@ -221,9 +205,144 @@ temp_plot<-  temp_geo %>%ggplot( aes(x=Year))+
     title="Proporzione di lavoratori correttamente impiegati",
     subtitle="Anni 2003-2013",
     caption= "Source: OECD")+
-  geom_point(aes(y=Value, col=GEO))+
-  geom_line(aes(y=Value, col=GEO)) + xlim(2002, 2014)
+  geom_point(aes(y=val_medio, col=GEO))+
+  geom_line(aes(y=val_medio, col=GEO)) + xlim(2002, 2014)
 temp_plot
+
+#PROVA: DIVIDERE I PAESI IN BASE AL mismatch 2019 in due classi
+
+#L'ho lasciato solo così vedi se anche secondo te non ha molto senso
+
+temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
+summary(dati$`Qualification mismatch`)
+temp<-left_join(temp, dati, by="LOCATION")
+temp <- temp %>% mutate(
+  mis_c = case_when(`Qualification mismatch`<34.80 ~ 1,
+                    `Qualification mismatch`>=34.80 ~ 2), 
+  mis_c = factor(mis_c, 1:2, c("Low", "High"))
+)
+table(temp$mis_c)
+
+temp_mis <- temp %>% select(Value, Year, mis_c) %>% group_by(mis_c, Year) %>%
+  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
+                           STD=~sd(Value, na.rm=T),
+                           N = ~sum(!is.na(Value))))
+temp_mis<-temp_mis[-23,]
+
+temp_plot<-  temp_mis %>% ggplot(aes(x=Year))+
+  theme_bw()+
+  labs(
+    x="Anno",
+    y= "Valore",
+    title="Proporzione di lavoratori correttamente impiegati",
+    subtitle="Anni 2003-2013",
+    caption= "Source: OECD")+
+  geom_point(aes(y=val_medio, col=mis_c))+
+  geom_line(aes(y=val_medio, col=mis_c)) + xlim(2002, 2014)+
+  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
+                  ymax=val_medio+1.96*STD/sqrt(N),fill=mis_c),
+              alpha=0.2)
+temp_plot #non mi convince perchè si mischiano da subito e poi si separano
+
+#PROVA: DIVIDERE I PAESI IN BASE ALL'AREA GEOGRAFICA in 2
+
+temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
+temp <- temp %>% mutate(
+  GEO = case_when(
+    Country == "Denmark" | Country == "Finland" |
+      Country == "Iceland" | Country == "Ireland" | Country == "Norway" |
+      Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
+      Country == "Latvia" | Country == "Lithuania" ~ 1,
+    Country == "Greece" | Country == "Italy" | Country == "Portugal" |
+      Country == "Spain" | Country == "TÃ¼rkiye" | Country == "Cyprus" |
+      Country == "Slovenia" | Country == "Malta" ~ 2,
+    Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
+      Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 2,
+    Country == "Austria" | Country == "Belgium" | Country == "France" |
+      Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
+      Country == "Switzerland" ~ 1), 
+  GEO = factor(GEO, 1:2, c("Nord-Ovest", "Sud-Est"))
+)
+
+#Calcoliamo media e deviazione standard per ogni macro-regione
+temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
+  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
+                           STD=~sd(Value, na.rm=T),
+                           N = ~sum(!is.na(Value))))
+
+temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
+  theme_bw()+
+  labs(
+    x="Anno",
+    y= "Valore",
+    title="Proporzione di lavoratori correttamente impiegati",
+    subtitle="Anni 2003-2013",
+    caption= "Source: OECD")+
+  geom_point(aes(y=val_medio, col=GEO),size=1.4)+
+  geom_line(aes(y=val_medio, col=GEO),lwd=1.2) + 
+  xlim(2002, 2014)+
+  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
+                  ymax=val_medio+1.96*STD/sqrt(N),fill=GEO),
+              linetype=2, outline.type = "both")+
+  scale_color_manual(values = c("#4EB09BFF","#F78425FF"))+
+  scale_fill_manual(values = c("#4EB09B44","#F7842544"))
+  
+temp_plot
+
+#PROVA: aggiungere il 2019 per vedere se il trend continua così
+
+temp_wide_2019<-temp_wide %>% left_join(dati, by="LOCATION")
+temp_wide_2019<-temp_wide_2019 %>%
+  select("LOCATION","Country.x","Qualification mismatch", starts_with("20"))%>%
+  mutate("2019"=(100-`Qualification mismatch`)) %>% 
+  rename("Country"="Country.x") %>% 
+  relocate("2019", .after = "2013")
+
+temp_long_2019<-temp_wide_2019 %>% 
+  pivot_longer(cols=starts_with("20"), names_to = "Year", values_to ="Value")
+
+temp_long_2019 <- temp_long_2019 %>% mutate(
+  GEO = case_when(
+    Country == "Denmark" | Country == "Finland" |
+      Country == "Iceland" | Country == "Ireland" | Country == "Norway" |
+      Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
+      Country == "Latvia" | Country == "Lithuania" ~ 1,
+    Country == "Greece" | Country == "Italy" | Country == "Portugal" |
+      Country == "Spain" | Country == "TÃ¼rkiye" | Country == "Cyprus" |
+      Country == "Slovenia" | Country == "Malta" ~ 2,
+    Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
+      Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 2,
+    Country == "Austria" | Country == "Belgium" | Country == "France" |
+      Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
+      Country == "Switzerland" ~ 1), 
+  GEO = factor(GEO, 1:2, c("Nord-Ovest", "Sud-Est"))
+)
+
+temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
+  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
+                           STD=~sd(Value, na.rm=T),
+                           N = ~sum(!is.na(Value))))
+temp_geo_2019$Year<-as.numeric(temp_geo_2019$Year)
+
+temp_plot<-  temp_geo_2019 %>% ggplot(aes(x=Year))+
+  theme_bw()+
+  labs(
+    x="Anno",
+    y= "Valore",
+    title="Proporzione di lavoratori correttamente impiegati",
+    subtitle="Anni 2003-2013",
+    caption= "Source: OECD")+
+  geom_point(aes(y=val_medio, col=GEO),size=1.4)+
+  geom_line(aes(y=val_medio, col=GEO),lwd=1.2) +
+  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
+                  ymax=val_medio+1.96*STD/sqrt(N),fill=GEO),
+              linetype=2, outline.type = "both")+
+  scale_color_manual(values = c("#4EB09BFF","#F78425FF"))+
+  scale_fill_manual(values = c("#4EB09B44","#F7842544"))
+
+temp_plot
+#Non penso abbia senso tenerlo per il fatto che in realtà i dati che usiamo non sono tutti del 2019
+#Però ci dà un po' un'idea del fatto che le differenze tra i due gruppi negli anni sono diminuite e tra il 2013 e il 2019 non hanno ricominciato ad aumentare
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -532,13 +651,6 @@ round(cor_ter,2)
 #Se le cose stanno cos? forse non ha senso tirare in ballo la diffusione dell'istruzione
 
 #MODELLO MULTIVARIATO: prova####
-pkg <- c(
-  "shiny", "tidyverse", "ggpubr", "haven",
-  "tidymodels", "broom", "devtools",
-  "ggiraphExtra", "dotwhisker", "texreg", "margins",
-  "ggeffects")
-sapply(pkg, require, character.only = TRUE)
-
 colnames(dati_senza)
 
 all<-lm(GDP~., data = dati_senza)
@@ -548,6 +660,9 @@ mod0<-lm(GDP~1, data = dati_senza)
 summary(mod0)
 
 stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
+
+summary(lm(formula = GDP ~ `law and public safety knowledge` + `physical skills` + 
+             Overqualification + `Qualification mismatch`, data = dati_senza))
 
 mult_mod_skills<-lm(GDP~ `cognitive skills`+`communication skills`+`digital skills`+`physical skills`+`social skills`, data=dati_senza)
 summary(mult_mod_skills)
@@ -566,6 +681,15 @@ summary(mult_mod_mismatch)
 #Interpretazione: boh
 
 #MODELLO UNIVARIATO CON UNDERQUALIFICATION
+
+#Verifica se GDP ha una distribuzione normale
+x <- dati$GDP
+h<-hist(x, breaks=9, col="sienna1")
+xfit<-seq(min(x),max(x),length=40)
+yfit<-dnorm(xfit,mean=mean(x),sd=sd(x))
+yfit <- yfit*diff(h$mids[1:2])*length(x)
+lines(xfit, yfit, col="blue", lwd=2)
+#La distribuzione sembra essere approssimabile a una normale quindi possiamo usare la regressione lineare
 
 mod_under<-lm(GDP~Underqualification, data=dati_senza)
 tidy(mod_under)
@@ -593,11 +717,23 @@ dati_senza%>%
 #'Underqualification: metti persone che non hanno studiato a fare lavori complessi
 #'Domanda di ricerca: Il PIL di un paese ? influenzato da una giusta assegnazione dei lavoratori al loro ambito e in base alla loro qualifica?
 
+#STRUTTURA ANALISI ####
 
-#'Tabelle: guarda lezione 4
-#'Lezione 4: grafici nei quali si tiene conto di 3 variabili delle quali una categorica
-#'Grafici che hanno sia i punti sia la linea e modifica della legenda
-#'Costruzione degli intervalli di confidenza
-#'Grafici di densit?: questi penso non ci servano
+#Bozza
+
+#'Descrittive: cartine volendo abbinandole ai grafici a barre per tutte le skills e knowledge
+#'Distribuzione del PIl per far vedere che sono tutti paesi ricchi
+#'Questi grafici possono essere accompagnati dalle tabelle con le frequenze relative per dare dei valori
+#'Nel caso in cui volessimo fare una suddivisione di questi paesi? Divisione geografica
+#'Dalla divisione geografica si passa all'andamento temporale facendo vedere che i valori non hanno grandi variazioni nel tempo (in media circa 5 punti percentuali)
+#'Possiamo anche dire che andando avanti con il tempo Nord-Ovest e Sud-Est sono sempre più simili
+#'Analisi delle correlazioni
+#'Grafici con le correlazioni più forti o per far vedere l'indipendenza tra coppie di variabili
+#'Eventuale costruzione del modello di regressione
+#'Conclusioni
+
+
+
+
 
 
