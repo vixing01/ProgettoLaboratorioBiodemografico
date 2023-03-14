@@ -69,6 +69,7 @@ dati<-dati[,-c(5,13,16,17)]
 
 #Caricamento dati serie temporale
 temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
+temp<-temp[-298,]
 
 #Da long a wide
 temp_wide<- temp %>%
@@ -93,29 +94,8 @@ gdp_plot <- ggplot(data=dati, aes(x=fct_reorder(Country,GDP), y=GDP)) +
        caption="Fonte: OECD") 
 gdp_plot
 
-art_plot <- ggplot(data=dati, aes(x=fct_reorder(Country,dati$`arts and humanities knowledge`), y=dati$`arts and humanities knowledge`)) +
-  geom_bar(stat="identity", color="purple", fill="violet") + 
-  theme_minimal()+ coord_flip() +
-  labs(y="Valori",
-       x="Nazioni",
-       title="Arts and humanities knowledge",
-       caption="Fonte: OECD") + ylim(-0.5, 0.5)
-art_plot
-
 #Grafici di correlazione col il PIL
 #Lo faccio per law and public safety knowledge e per Underqualification, dato che sono gli unici risultati correlati
-
-PIL_law <- ggplot(data=dati, aes(y=`law and public safety knowledge`, x=GDP)) +
-  geom_point(alpha=0.3) +
-  theme_minimal() +
-  labs(y="Conoscenze di legge e pubblica sicurezza",
-       x="PIL pro capite",
-       title="Conoscenze di legge e pubblica sicurezza & PIL",
-       subtitle="Ogni punto rappresenta un paese europeo",
-       caption="Fonte: OECD")+ 
-  scale_x_log10(labels=scales::dollar)+
-  geom_smooth(method="lm", color="red", se=F)
-PIL_law
 
 PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
   geom_point(alpha=0.3) +
@@ -129,18 +109,6 @@ PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
   geom_smooth(method="lm", color="red", se=F)
 PIL_under
 
-#digital skill e production and technology
-digi_techno <- ggplot(data=dati, aes(y=`digital skills`, x=`production and technology knowledge`)) +
-  geom_point(alpha=0.3) +
-  theme_minimal() +
-  labs(y="Digital skills",
-       x="Production and technology knowledge",
-       title="Abilità digitali e conoscenze tecniche e produttive",
-       subtitle="Ogni punto rappresenta un paese europeo",
-       caption="Fonte: OECD")+
-  geom_smooth(method="lm", color="red", se=F)
-digi_techno
-
 # Serie temporale ####
 
 #Nella serie temporale si considera la variabile "Proportion of workers who are well matched"
@@ -150,7 +118,7 @@ digi_techno
 
 #per Paese
 
-grafico_temporale<-temp  %>%
+grafico_temporale<-temp %>%
   ggplot(aes(x=Year, y=Value))+
   geom_line(col="darkred") +
   theme_minimal()+
@@ -159,9 +127,9 @@ grafico_temporale<-temp  %>%
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
         subtitle="Con lavoratore correttamente impiegato si intened lavoratore impiegato nel campo per cui si è formato", 
         caption="Fonte dati: OECD.")+
-  scale_x_continuous(breaks=NULL) #altrimenti si pu? mettere come breaks 2003 e 2013 ma rimangono sempre un pochino sovrapposte le scritte
+  scale_x_continuous(breaks=NULL)
 
-grafico_temporale #ha davvero senso tenere Malta?
+grafico_temporale
 
 #In base a cosa raggruppare questi paesi?
 dati_temporale<-temp_wide %>% select("LOCATION", "2013")%>%
@@ -210,26 +178,9 @@ temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
 temp_plot
 
 
-#grafico alternativo
+#grafico alternativo suddiviso per aree geografiche
 
 temporaneo <- temp_geo %>% mutate(Country = GEO)
-
-temp_tot<-  temp %>% 
-  ggplot(aes(x=Year, y=Value, group=Country))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="Proporzione di lavoratori correttamente impiegati",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
-  geom_line(data=temporaneo, 
-            aes(x=Year, y=val_medio, col=Country),
-            linewidth=1.8)
-temp_tot
-
-#suddiviso per aree geografiche
 
 temp_North<-  temp %>% filter(GEO=="North") %>%
   ggplot(aes(x=Year, y=Value, group=Country))+
@@ -243,7 +194,7 @@ temp_North<-  temp %>% filter(GEO=="North") %>%
   geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
   geom_line(data=temporaneo %>% filter(Country == "North"), 
             aes(x=Year, y=val_medio),
-            linewidth=1.8)
+            linewidth=1.8)+ ylim(50,85)
 temp_North
 
 temp_South<-  temp %>% filter(GEO=="South") %>%
@@ -258,7 +209,7 @@ temp_South<-  temp %>% filter(GEO=="South") %>%
   geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
   geom_line(data=temporaneo %>% filter(Country == "South"), 
             aes(x=Year, y=val_medio),
-            linewidth=1.8)
+            linewidth=1.8)+ ylim(50,85)
 temp_South
 
 temp_East<-  temp %>% filter(GEO=="East") %>%
@@ -273,7 +224,7 @@ temp_East<-  temp %>% filter(GEO=="East") %>%
   geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
   geom_line(data=temporaneo %>% filter(Country == "East"), 
             aes(x=Year, y=val_medio),
-            linewidth=1.8)
+            linewidth=1.8)+ ylim(50,85)
 temp_East
 
 temp_West<-  temp %>% filter(GEO=="West") %>%
@@ -288,7 +239,7 @@ temp_West<-  temp %>% filter(GEO=="West") %>%
   geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
   geom_line(data=temporaneo %>% filter(Country == "West"), 
             aes(x=Year, y=val_medio),
-            linewidth=1.8)
+            linewidth=1.8) + ylim(50,85)
 temp_West
 
 ggarrange(temp_North, temp_South, temp_East, temp_West)
@@ -310,11 +261,9 @@ dati_geo <- dati %>% mutate(
       Country == "Switzerland" ~ 4
   ), 
   GEO = factor(GEO, 1:4, c("North", "South", "East", "West"))
-) %>% group_by(GEO) %>% summarize_all(.funs=list(val_medio=~mean(GDP, na.rm=T)))
+) %>% group_by(GEO) %>% select(-c("LOCATION", "Country", "continent")) %>% summarize_all(mean, na.rm=T)
 
-
-
-gdp_plot_geo <- ggplot(data=dati_geo, aes(x=fct_reorder(GEO,GDP_val_medio), y=GDP_val_medio)) +
+gdp_plot_geo <- ggplot(data=dati_geo, aes(x=fct_reorder(GEO,GDP), y=GDP)) +
   geom_bar(stat="identity", color="blue", fill="azure") + 
   theme_minimal()+ coord_flip() +
   labs(y="PIl pro capite",
@@ -323,54 +272,7 @@ gdp_plot_geo <- ggplot(data=dati_geo, aes(x=fct_reorder(GEO,GDP_val_medio), y=GD
        caption="Fonte: OECD") 
 gdp_plot_geo
 
-#L'europa dell'est è la più povera, potrebbe voler dire qualcosa?
-
-#PROVA: DIVIDERE I PAESI IN BASE ALL'AREA GEOGRAFICA in 2
-
-temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
-temp <- temp %>% mutate(
-  GEO = case_when(
-    Country == "Denmark" | Country == "Finland" |
-      Country == "Iceland" | Country == "Ireland" | Country == "Norway" |
-      Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
-      Country == "Latvia" | Country == "Lithuania" ~ 1,
-    Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
-      Country == "Slovenia" | Country == "Malta" ~ 1,
-    Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
-      Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 2,
-    Country == "Austria" | Country == "Belgium" | Country == "France" |
-      Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
-      Country == "Switzerland" ~ 1), 
-  GEO = factor(GEO, 1:2, c("Ovest", "Est"))
-)
-
-#Calcoliamo media e deviazione standard per ogni macro-regione
-temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
-  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
-                           STD=~sd(Value, na.rm=T),
-                           N = ~sum(!is.na(Value))))
-
-temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore (%)",
-    title="Proporzione di lavoratori correttamente impiegati",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_point(aes(y=val_medio, col=GEO),size=1.4)+
-  geom_line(aes(y=val_medio, col=GEO),lwd=1.2) + 
-  xlim(2002, 2014)+
-  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
-                  ymax=val_medio+1.96*STD/sqrt(N),fill=GEO),
-              linetype=2, outline.type = "both")+
-  scale_color_manual(values = c("#4EB09BFF","#F78425FF"))+
-  scale_fill_manual(values = c("#4EB09B44","#F7842544"))
-  
-temp_plot
-
-#PROVA: aggiungere il 2019 per vedere se il trend continua cos?
+#PROVA: aggiungere il 2019 per vedere se il trend continua cos�
 
 temp_wide_2019<-temp_wide %>% left_join(dati, by="LOCATION")
 temp_wide_2019<-temp_wide_2019 %>%
@@ -396,7 +298,7 @@ temp_long_2019 <- temp_long_2019 %>% mutate(
     Country == "Austria" | Country == "Belgium" | Country == "France" |
       Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
       Country == "Switzerland" ~ 1), 
-  GEO = factor(GEO, 1:2, c("Ovest", "Est"))
+  GEO = factor(GEO, 1:2, c("N-S-W", "Est"))
 )
 
 temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
@@ -405,27 +307,7 @@ temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Y
                            N = ~sum(!is.na(Value))))
 temp_geo_2019$Year<-as.numeric(temp_geo_2019$Year)
 
-temp_plot<-  temp_geo_2019 %>% ggplot(aes(x=Year))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="Proporzione di lavoratori correttamente impiegati",
-    subtitle="Anni 2003-2019",
-    caption= "Source: OECD")+
-  geom_point(aes(y=val_medio, col=GEO),size=1.4)+
-  geom_line(aes(y=val_medio, col=GEO),lwd=1.2) +
-  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
-                  ymax=val_medio+1.96*STD/sqrt(N),fill=GEO),
-              linetype=2, outline.type = "both")+
-  scale_color_manual(values = c("#4EB09BFF","#F78425FF"))+
-  scale_fill_manual(values = c("#4EB09B44","#F7842544"))
-
-temp_plot
-
-#Non penso abbia senso tenerlo per il fatto che in realt? i dati che usiamo non sono tutti del 2019
-#Per? ci d? un po' un'idea del fatto che le differenze tra i due gruppi negli anni sono diminuite e tra il 2013 e il 2019 non hanno ricominciato ad aumentare
-
+#RAGIONA SU COME SI FA LA TABELLA
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -433,7 +315,6 @@ temp_plot
 taglio<-function(variabile){
   cut(variabile, breaks = c(-1,-0.6, -0.2, 0.2, 0.6, 1), labels=c("forte surplus","surplus moderato","equilibrio","carenza moderata","forte carenza"))}
 
-library(dplyr)
 #Dataset con variabili in classi
 dati_c<- dati %>% 
   select(4:16) %>% 
@@ -445,7 +326,6 @@ dati_c<- dati_c %>%
          over_c=cut(Overqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")),
          under_c=cut(Underqualification,breaks=c(5,10,15,20,25,30,35),labels =c("5-10%","10-15%","15-20%","20-25%","25-30%","30-35%")))
 
-library(knitr)
 
 tab_mismatch <-round(prop.table(table(dati_c$mismatch_c))*100,1)
 tab_over <-round(prop.table(table(dati_c$over_c))*100,1)
@@ -640,99 +520,6 @@ round(matrice_corr,2)[11:13,14]
 
 corrplot(matrice_corr, method="color",type = "upper")
 
-
-#Correlazione con l'istruzione?####
-browseURL("https://ec.europa.eu/eurostat/databrowser/view/EDAT_LFSE_03__custom_5173078/default/table?lang=en")
-dati_prova<-dati[order(-dati$Underqualification),]
-dati_prova<- dati_prova %>% select(LOCATION, Country,Underqualification,Overqualification)
-
-istruzione<-read.csv("istruzione.csv") #upper-secondary, post-secondary non tertiary and tertiary education
-istruzione<-istruzione %>% select(geo, OBS_VALUE) %>% 
-  mutate(LOCATION=recode(geo,
-                         "BG"= "BGR" ,
-                         "CH"= "CHE" ,
-                         "CY"= "CYP" ,
-                         "CZ"= "CZE" ,
-                         "BE"= "BEL" ,
-                         "AT"= "AUT" ,
-                         "DE"="DEU",
-                         "DK"="DNK",
-                         "EE"="EST",
-                         "EL"="GRC",
-                         "ES"="ESP",
-                         "FI"="FIN",
-                         "FR"="FRA",
-                         "HU"="HUN",
-                         "IE"="IRL",
-                         "IS"="ISL",
-                         "IT"="ITA",
-                         "LT"="LTU",
-                         "LU"="LUX",
-                         "LV"="LVA",
-                         "NL"="NLD",
-                         "NO"="NOR",
-                         "PL"="POL",
-                         "PT"="PRT",
-                         "RO"="ROU",
-                         "SE"="SWE",
-                         "SI"="SVN",
-                         "SK"="SVK",
-                         "TR"="TUR",
-                         "UK"="GBR")) %>% 
-  right_join(dati_prova, by="LOCATION") %>%
-  rename("%istruzione"=OBS_VALUE)
-
-cor_ist<-istruzione %>% select(`%istruzione`,Overqualification,Underqualification) %>% cor()
-round(cor_ist,2)
-#La percentuale di istruzione risulta pressoch? indipendente dall'underqualification mentre negativamente correlata con over
-#Nei paesi in cui pi? persone vengono messe a fare lavori pi? "semplici" la percentuale di persone con istruzione almeno secondaria ? pi? bassa
-#Strano
-
-
-tertiary<-read.csv("tertiary.csv") #educazione terziaria
-tertiary<-tertiary %>% select(geo, OBS_VALUE) %>% 
-  mutate(LOCATION=recode(geo,
-                         "BG"= "BGR" ,
-                         "CH"= "CHE" ,
-                         "CY"= "CYP" ,
-                         "CZ"= "CZE" ,
-                         "BE"= "BEL" ,
-                         "AT"= "AUT" ,
-                         "DE"="DEU",
-                         "DK"="DNK",
-                         "EE"="EST",
-                         "EL"="GRC",
-                         "ES"="ESP",
-                         "FI"="FIN",
-                         "FR"="FRA",
-                         "HU"="HUN",
-                         "IE"="IRL",
-                         "IS"="ISL",
-                         "IT"="ITA",
-                         "LT"="LTU",
-                         "LU"="LUX",
-                         "LV"="LVA",
-                         "NL"="NLD",
-                         "NO"="NOR",
-                         "PL"="POL",
-                         "PT"="PRT",
-                         "RO"="ROU",
-                         "SE"="SWE",
-                         "SI"="SVN",
-                         "SK"="SVK",
-                         "TR"="TUR",
-                         "UK"="GBR")) %>% 
-  right_join(dati_prova, by="LOCATION") %>% 
-  rename("%tertiary"=OBS_VALUE)
-cor_ter<-tertiary %>% select(`%tertiary`,Overqualification,Underqualification) %>% cor()
-
-round(cor_ter,2)
-#I paesi con pi? persone con educazione terziaria hanno anche pi? underqualification
-#I paesi con pi? persone con educazione terziaria hanno un'overqualification pi? bassa
-#Molto strano
-
-#Se le cose stanno cos? forse non ha senso tirare in ballo la diffusione dell'istruzione
-
 #MODELLO MULTIVARIATO: prova####
 colnames(dati_senza)
 
@@ -741,11 +528,6 @@ summary(all)
 
 mod0<-lm(GDP~1, data = dati_senza)
 summary(mod0)
-
-stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
-
-summary(lm(formula = GDP ~ `law and public safety knowledge` + `physical skills` + 
-             Overqualification + `Qualification mismatch`, data = dati_senza))
 
 mult_mod_skills<-lm(GDP~ `cognitive skills`+`communication skills`+`digital skills`+`physical skills`+`social skills`, data=dati_senza)
 summary(mult_mod_skills)
@@ -778,22 +560,6 @@ mod_under<-lm(GDP~Underqualification, data=dati_senza)
 tidy(mod_under)
 summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene ai dati: R^2=0.14
 
-dati_senza%>%
-  ggplot(aes(x=Underqualification, y=GDP)) +
-  geom_point() +
-  theme_bw()+
-  labs(
-    title = "GDP e Underqualification",
-    x= "Underqualification",
-    y= "GDP per capita",
-    caption = "Dati 2019")+
-  geom_smooth(method=lm, se=FALSE, col="orangered2", fullrange = TRUE) +
-  scale_x_continuous(limits=c(0, 50))+
-  scale_y_continuous(limits=c(0 ,150000))+
-  geom_hline(yintercept = 0) +
-  geom_hline(yintercept= 23873) +
-  geom_vline(xintercept = 0)
-
 
 #'Commento per me:
 #'Overqualification: metti persone che hanno studiato a fare lavori manuali
@@ -809,14 +575,7 @@ dati_senza%>%
 #'Questi grafici possono essere accompagnati dalle tabelle con le frequenze relative per dare dei valori
 #'Nel caso in cui volessimo fare una suddivisione di questi paesi? Divisione geografica
 #'Dalla divisione geografica si passa all'andamento temporale facendo vedere che i valori non hanno grandi variazioni nel tempo (in media circa 5 punti percentuali)
-#'Possiamo anche dire che andando avanti con il tempo Nord-Ovest e Sud-Est sono sempre pi? simili
 #'Analisi delle correlazioni
 #'Grafici con le correlazioni pi? forti o per far vedere l'indipendenza tra coppie di variabili
 #'Eventuale costruzione del modello di regressione
 #'Conclusioni
-
-
-
-
-
-
