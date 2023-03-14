@@ -209,6 +209,7 @@ temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
   geom_line(aes(y=val_medio, col=GEO)) + xlim(2002, 2014)
 temp_plot
 
+
 #grafico alternativo
 
 temporaneo <- temp_geo %>% mutate(Country = GEO)
@@ -324,41 +325,6 @@ gdp_plot_geo
 
 #L'europa dell'est è la più povera, potrebbe voler dire qualcosa?
 
-#PROVA: DIVIDERE I PAESI IN BASE AL mismatch 2019 in due classi
-
-#L'ho lasciato solo cos? vedi se anche secondo te non ha molto senso
-
-temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
-summary(dati$`Qualification mismatch`)
-temp<-left_join(temp, dati, by="LOCATION")
-temp <- temp %>% mutate(
-  mis_c = case_when(`Qualification mismatch`<34.80 ~ 1,
-                    `Qualification mismatch`>=34.80 ~ 2), 
-  mis_c = factor(mis_c, 1:2, c("Low", "High"))
-)
-table(temp$mis_c)
-
-temp_mis <- temp %>% select(Value, Year, mis_c) %>% group_by(mis_c, Year) %>%
-  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
-                           STD=~sd(Value, na.rm=T),
-                           N = ~sum(!is.na(Value))))
-temp_mis<-temp_mis[-23,]
-
-temp_plot<-  temp_mis %>% ggplot(aes(x=Year))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="Proporzione di lavoratori correttamente impiegati",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_point(aes(y=val_medio, col=mis_c))+
-  geom_line(aes(y=val_medio, col=mis_c)) + xlim(2002, 2014)+
-  geom_ribbon(aes(ymin=val_medio-1.96*STD/sqrt(N),
-                  ymax=val_medio+1.96*STD/sqrt(N),fill=mis_c),
-              alpha=0.2)
-temp_plot #non mi convince perch? si mischiano da subito e poi si separano
-
 #PROVA: DIVIDERE I PAESI IN BASE ALL'AREA GEOGRAFICA in 2
 
 temp <- read.csv("serie_temp.csv") %>% select(LOCATION, Country, Year, Value)
@@ -370,13 +336,13 @@ temp <- temp %>% mutate(
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
       Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
-      Country == "Slovenia" | Country == "Malta" ~ 2,
+      Country == "Slovenia" | Country == "Malta" ~ 1,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 2,
     Country == "Austria" | Country == "Belgium" | Country == "France" |
       Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
       Country == "Switzerland" ~ 1), 
-  GEO = factor(GEO, 1:2, c("Nord-Ovest", "Sud-Est"))
+  GEO = factor(GEO, 1:2, c("Ovest", "Est"))
 )
 
 #Calcoliamo media e deviazione standard per ogni macro-regione
@@ -389,7 +355,7 @@ temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
   theme_bw()+
   labs(
     x="Anno",
-    y= "Valore",
+    y= "Valore (%)",
     title="Proporzione di lavoratori correttamente impiegati",
     subtitle="Anni 2003-2013",
     caption= "Source: OECD")+
@@ -424,13 +390,13 @@ temp_long_2019 <- temp_long_2019 %>% mutate(
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
       Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
-      Country == "Slovenia" | Country == "Malta" ~ 2,
+      Country == "Slovenia" | Country == "Malta" ~ 1,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 2,
     Country == "Austria" | Country == "Belgium" | Country == "France" |
       Country == "Germany" | Country == "Luxembourg" | Country == "Netherlands" |
       Country == "Switzerland" ~ 1), 
-  GEO = factor(GEO, 1:2, c("Nord-Ovest", "Sud-Est"))
+  GEO = factor(GEO, 1:2, c("Ovest", "Est"))
 )
 
 temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
@@ -445,7 +411,7 @@ temp_plot<-  temp_geo_2019 %>% ggplot(aes(x=Year))+
     x="Anno",
     y= "Valore",
     title="Proporzione di lavoratori correttamente impiegati",
-    subtitle="Anni 2003-2013",
+    subtitle="Anni 2003-2019",
     caption= "Source: OECD")+
   geom_point(aes(y=val_medio, col=GEO),size=1.4)+
   geom_line(aes(y=val_medio, col=GEO),lwd=1.2) +
@@ -456,8 +422,10 @@ temp_plot<-  temp_geo_2019 %>% ggplot(aes(x=Year))+
   scale_fill_manual(values = c("#4EB09B44","#F7842544"))
 
 temp_plot
+
 #Non penso abbia senso tenerlo per il fatto che in realt? i dati che usiamo non sono tutti del 2019
 #Per? ci d? un po' un'idea del fatto che le differenze tra i due gruppi negli anni sono diminuite e tra il 2013 e il 2019 non hanno ricominciato ad aumentare
+
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -836,7 +804,7 @@ dati_senza%>%
 
 #Bozza
 
-#'Descrittive: cartine volendo abbinandole ai grafici a barre per tutte le skills e knowledge
+#'Descrittive: cartine per tutte le skills e knowledge
 #'Distribuzione del PIl per far vedere che sono tutti paesi ricchi
 #'Questi grafici possono essere accompagnati dalle tabelle con le frequenze relative per dare dei valori
 #'Nel caso in cui volessimo fare una suddivisione di questi paesi? Divisione geografica
