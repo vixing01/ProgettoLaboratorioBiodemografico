@@ -94,21 +94,6 @@ gdp_plot <- ggplot(data=dati, aes(x=fct_reorder(Country,GDP), y=GDP)) +
        caption="Fonte: OECD") 
 gdp_plot
 
-#Grafici di correlazione col il PIL
-#Lo faccio per law and public safety knowledge e per Underqualification, dato che sono gli unici risultati correlati
-
-PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
-  geom_point(alpha=0.3) +
-  theme_minimal() +
-  labs(y="Sottoqualificazione",
-       x="PIL pro capite",
-       title="Sottoqualificazione & PIL",
-       subtitle="Ogni punto rappresenta un paese europeo",
-       caption="Fonte: OECD")+ 
-  scale_x_log10(labels=scales::dollar)+
-  geom_smooth(method="lm", color="red", se=F)
-PIL_under
-
 # Serie temporale ####
 
 #Nella serie temporale si considera la variabile "Proportion of workers who are well matched"
@@ -125,7 +110,7 @@ grafico_temporale<-temp %>%
   facet_wrap(~Country, ncol=6)+
   labs( y="Proporzione di lavoratori correttamente impiegati", x="Anni",
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
-        subtitle="Con lavoratore correttamente impiegato si intened lavoratore impiegato nel campo per cui si Ã¨ formato", 
+        subtitle="Con lavoratore correttamente impiegato si intened lavoratore impiegato nel campo per cui si è formato", 
         caption="Fonte dati: OECD.")+
   scale_x_continuous(breaks=NULL)
 
@@ -165,7 +150,6 @@ temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
                            STD=~sd(Value, na.rm=T),
                            N = ~sum(!is.na(Value))))
 
-
 temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
   theme_bw()+
   labs(
@@ -176,6 +160,7 @@ temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
     caption= "Source: OECD")+
   geom_point(aes(y=val_medio, col=GEO))+
   geom_line(aes(y=val_medio, col=GEO)) + xlim(2002, 2014)
+
 temp_plot #grafico con i paesi raggruppati per aree geografiche
 
 
@@ -188,7 +173,7 @@ funzione_temporale<-function(valore){temp %>% filter(GEO==valore) %>%
     theme_bw()+
     labs(
       x="Anno",
-      y= "Valore",
+      y= "% lavoratori correttamente impiegati",
       title=valore,
       subtitle="Anni 2003-2013",
       caption= "Source: OECD")+
@@ -232,6 +217,7 @@ gdp_plot_geo <- ggplot(data=dati_geo, aes(x=fct_reorder(GEO,GDP), y=GDP)) +
        x="Macroaree geografiche",
        title="PIL pro capite per macroareegeografiche",
        caption="Fonte: OECD") 
+
 gdp_plot_geo
 
 #Aggiungiamo il 2019 per vedere se il trend continua a rimanere simile
@@ -268,7 +254,7 @@ temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Y
                 
 temp_geo_2019$Year<-as.numeric(temp_geo_2019$Year)
 
-tabella<-temp_geo_2019[,-c(4,5)] %>% pivot_wider(names_from="Year", values_from="val_medio")
+tabella<-temp_geo_2019 %>% pivot_wider(names_from="Year", values_from="val_medio")
 
 kable(tabella[,c(1,6,12,13)],"simple", digits = 1)
 #Le oscillazioni ogni 6 anni rimangono entro i 2 punti percentuali, quindi possiamo dire che la situazione continua a mantenersi pressochè costante
@@ -390,10 +376,10 @@ map0 <- tm_shape(geodata_link) +
 
 bb(geodata)
 
-bb_cont<-bb(geodata,xlim=c(-24,51), ylim=c(35,71) ) # redefine the bounding box
+bb_cont<-bb(geodata,xlim=c(-24,51), ylim=c(35,71) )
 
 #Mappa dell'Europa
-map1 <- tm_shape(geodata_link, bbox=bb_cont) + # bb = bounding box
+map1 <- tm_shape(geodata_link, bbox=bb_cont) +
   tm_polygons() +
   tm_fill("lightgrey")
 map1
@@ -465,27 +451,40 @@ dati_senza<-dati %>% select(!c(LOCATION, Country, continent))
 #In questo dataset non sono presenti valori mancanti e abbiamo tutte variabili quantitative
 
 matrice_corr<-dati_senza %>% cor()
-round(matrice_corr,2)[,14] #Siamo interessate alla correlazione delle nostre variabili con il GDP
+kable(round(matrice_corr,2)[,14],"simple", col.names = "GDP")  #Siamo interessate alla correlazione delle nostre variabili con il GDP
 #La correlazione pi? elevata si ha con Underqualification (0.38)
 
 #Correlazione delle variabili knowledge
-round(matrice_corr,2)[c(1,5,6,8,9),14]
-#Si va da una correlazione di 0.32 con le conoscenze giuridiche a una pressoch? indipendenza con le conoscenze tecnologiche
+kable(round(matrice_corr,2)[c(1,5,6,8,9),14],"simple", col.names = "GDP")
+#Si va da una correlazione di 0.32 con le conoscenze giuridiche a una pressochè indipendenza con le conoscenze tecnologiche
 
 #Correlazione con le variabili skills
-round(matrice_corr,2)[c(2,3,4,7,10),14]
-#Digital, cognitive e physical skills sono pressoch? indipendenti mentre la correlazione pi? rilevante (0.21) si ha per le skill comunicative
+kable(round(matrice_corr,2)[c(2,3,4,7,10),14],"simple", col.names = "GDP")
+#Digital, cognitive e physical skills sono pressochè indipendenti mentre la correlazione più rilevante (0.21) si ha per le skill comunicative
 
 #Correlazione con over, under e mismatch
-round(matrice_corr,2)[11:13,14]
-#La correlazione ? positiva per l'underqualification mentre ? debolmente negativa per l'overqualification
-#Possibile interpretazione: sprecare persone che hanno studiato mettendole a fare lavori al di sotto della loro preparazione non ? positivo per il PIL
-#Mettere persone non preparate a fare lavori per cui non sono qualificate ha una parziale correlazione positiva con il PIL, ma forse per il semplice fatto che nei paesi con elevata underqualification l'istruzione superiore ? meno diffusa
-#Per valutare questa interpretazione, per?, bisognerebbe avere dei dati: CONTROLLA SE POTREBBE ESSERE UN CONFONDENTE
+kable(round(matrice_corr,2)[11:13,14],"simple", col.names = "GDP")
+#La correlazione è positiva per l'underqualification mentre è debolmente negativa per l'overqualification
+#Possibile interpretazione: sprecare persone che hanno studiato mettendole a fare lavori al di sotto della loro preparazione non è positivo per il PIL
+#Mettere persone non preparate a fare lavori per cui non sono qualificate ha una parziale correlazione positiva con il PIL, ma forse per il semplice fatto che nei paesi con elevata underqualification l'istruzione superiore è meno diffusa
 
 corrplot(matrice_corr, method="color",type = "upper")
+matrice_corr>0.7 #correlazioni forti
+
 
 #MODELLO MULTIVARIATO: prova####
+
+#Verifica se GDP ha una distribuzione normale
+x <- dati$GDP
+h<-hist(x, breaks=9, col="sienna1")
+xfit<-seq(min(x),max(x),length=40)
+yfit<-dnorm(xfit,mean=mean(x),sd=sd(x))
+yfit <- yfit*diff(h$mids[1:2])*length(x)
+lines(xfit, yfit, col="blue", lwd=2)
+#La distribuzione non è normale, quindi non è del tutto corretto utilizzare la regressione lineare. Giusto?
+shapiro.test(dati$GDP)
+ks.test(dati$GDP,"pnorm")
+
 colnames(dati_senza)
 
 all<-lm(GDP~., data = dati_senza)
@@ -512,24 +511,28 @@ summary(mult_mod_mismatch)
 
 #MODELLO UNIVARIATO CON UNDERQUALIFICATION
 
-#Verifica se GDP ha una distribuzione normale
-x <- dati$GDP
-h<-hist(x, breaks=9, col="sienna1")
-xfit<-seq(min(x),max(x),length=40)
-yfit<-dnorm(xfit,mean=mean(x),sd=sd(x))
-yfit <- yfit*diff(h$mids[1:2])*length(x)
-lines(xfit, yfit, col="blue", lwd=2)
-#La distribuzione sembra essere approssimabile a una normale quindi possiamo usare la regressione lineare
-
 mod_under<-lm(GDP~Underqualification, data=dati_senza)
 tidy(mod_under)
 summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene ai dati: R^2=0.14
+#L'Underqualification spiega solo il 14% della variabilità del GDP
+
+PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
+  geom_point(alpha=0.3) +
+  theme_minimal() +
+  labs(y="Sottoqualificazione",
+       x="PIL pro capite",
+       title="Sottoqualificazione & PIL",
+       subtitle="Ogni punto rappresenta un paese europeo",
+       caption="Fonte: OECD")+ 
+  scale_x_log10(labels=scales::dollar)+
+  geom_smooth(method="lm", color="red", se=F)
+PIL_under
 
 
 #'Commento per me:
 #'Overqualification: metti persone che hanno studiato a fare lavori manuali
 #'Underqualification: metti persone che non hanno studiato a fare lavori complessi
-#'Domanda di ricerca: Il PIL di un paese ? influenzato da una giusta assegnazione dei lavoratori al loro ambito e in base alla loro qualifica?
+#'Domanda di ricerca: Il PIL di un paese è influenzato da una giusta assegnazione dei lavoratori al loro ambito e in base alla loro qualifica?
 
 #STRUTTURA ANALISI ####
 
