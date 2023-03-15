@@ -123,7 +123,7 @@ grafico_temporale<-temp %>%
   geom_line(col="darkred") +
   theme_minimal()+
   facet_wrap(~Country, ncol=6)+
-  labs( y="Proportion of workers who are well matched", x="Anni",
+  labs( y="Proporzione di lavoratori correttamente impiegati", x="Anni",
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
         subtitle="Con lavoratore correttamente impiegato si intened lavoratore impiegato nel campo per cui si Ã¨ formato", 
         caption="Fonte dati: OECD.")+
@@ -147,7 +147,7 @@ temp <- temp %>% mutate(
       Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "TÃ¼rkiye" | Country == "Cyprus" |
+      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
       Country == "Slovenia" | Country == "Malta" ~ 2,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
@@ -158,6 +158,7 @@ temp <- temp %>% mutate(
   GEO = factor(GEO, 1:4, c("North", "South", "East", "West"))
 )
 
+table(temp$GEO)
 #Calcoliamo media e deviazione standard per ogni macro-regione
 temp_geo <- temp %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
   summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
@@ -175,74 +176,35 @@ temp_plot<-  temp_geo %>% ggplot(aes(x=Year))+
     caption= "Source: OECD")+
   geom_point(aes(y=val_medio, col=GEO))+
   geom_line(aes(y=val_medio, col=GEO)) + xlim(2002, 2014)
-temp_plot
+temp_plot #grafico con i paesi raggruppati per aree geografiche
 
 
-#grafico alternativo suddiviso per aree geografiche
+#grafico ulteriore suddiviso per aree geografiche mostrando anche le linee relative a tutti i paesi
 
 temporaneo <- temp_geo %>% mutate(Country = GEO)
 
-temp_North<-  temp %>% filter(GEO=="North") %>%
-  ggplot(aes(x=Year, y=Value, group=Country))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="North",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
-  geom_line(data=temporaneo %>% filter(Country == "North"), 
-            aes(x=Year, y=val_medio),
-            linewidth=1.8)+ ylim(50,85)
-temp_North
+funzione_temporale<-function(valore){temp %>% filter(GEO==valore) %>%
+    ggplot(aes(x=Year, y=Value, group=Country))+
+    theme_bw()+
+    labs(
+      x="Anno",
+      y= "Valore",
+      title=valore,
+      subtitle="Anni 2003-2013",
+      caption= "Source: OECD")+
+    geom_line(col="lightskyblue", alpha=0.6) + xlim(2002, 2014)+
+    geom_line(data=temporaneo %>% filter(Country == valore), 
+              aes(x=Year, y=val_medio),
+              col="dodgerblue4",
+              linewidth=1.8)+ ylim(50,85)}
 
-temp_South<-  temp %>% filter(GEO=="South") %>%
-  ggplot(aes(x=Year, y=Value, group=Country))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="South",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
-  geom_line(data=temporaneo %>% filter(Country == "South"), 
-            aes(x=Year, y=val_medio),
-            linewidth=1.8)+ ylim(50,85)
-temp_South
-
-temp_East<-  temp %>% filter(GEO=="East") %>%
-  ggplot(aes(x=Year, y=Value, group=Country))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="East",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
-  geom_line(data=temporaneo %>% filter(Country == "East"), 
-            aes(x=Year, y=val_medio),
-            linewidth=1.8)+ ylim(50,85)
-temp_East
-
-temp_West<-  temp %>% filter(GEO=="West") %>%
-  ggplot(aes(x=Year, y=Value, group=Country))+
-  theme_bw()+
-  labs(
-    x="Anno",
-    y= "Valore",
-    title="West",
-    subtitle="Anni 2003-2013",
-    caption= "Source: OECD")+
-  geom_line(col="grey", alpha=0.5) + xlim(2002, 2014)+
-  geom_line(data=temporaneo %>% filter(Country == "West"), 
-            aes(x=Year, y=val_medio),
-            linewidth=1.8) + ylim(50,85)
-temp_West
+temp_North<-funzione_temporale("North")
+temp_South<-funzione_temporale("South")
+temp_East<-funzione_temporale("East")
+temp_West<-funzione_temporale("West")
 
 ggarrange(temp_North, temp_South, temp_East, temp_West)
+
 
 #Provo PIL per Nazioni raggruppate in macroaree
 dati_geo <- dati %>% mutate(
@@ -252,7 +214,7 @@ dati_geo <- dati %>% mutate(
       Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "TÃ¼rkiye" | Country == "Cyprus" |
+      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
       Country == "Slovenia" | Country == "Malta" ~ 2,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
@@ -272,7 +234,7 @@ gdp_plot_geo <- ggplot(data=dati_geo, aes(x=fct_reorder(GEO,GDP), y=GDP)) +
        caption="Fonte: OECD") 
 gdp_plot_geo
 
-#PROVA: aggiungere il 2019 per vedere se il trend continua così
+#Aggiungiamo il 2019 per vedere se il trend continua a rimanere simile
 
 temp_wide_2019<-temp_wide %>% left_join(dati, by="LOCATION")
 temp_wide_2019<-temp_wide_2019 %>%
@@ -302,12 +264,15 @@ temp_long_2019 <- temp_long_2019 %>% mutate(
 )
 
 temp_geo_2019 <- temp_long_2019 %>% select(Value, Year, GEO) %>% group_by(GEO, Year) %>%
-  summarize_all(.funs=list(val_medio=~mean(Value, na.rm=T),
-                           STD=~sd(Value, na.rm=T),
-                           N = ~sum(!is.na(Value))))
+  summarize(val_medio=mean(Value, na.rm=T))
+                
 temp_geo_2019$Year<-as.numeric(temp_geo_2019$Year)
 
-#RAGIONA SU COME SI FA LA TABELLA
+tabella<-temp_geo_2019[,-c(4,5)] %>% pivot_wider(names_from="Year", values_from="val_medio")
+
+kable(tabella[,c(1,6,12,13)],"simple", digits = 1)
+#Le oscillazioni ogni 6 anni rimangono entro i 2 punti percentuali, quindi possiamo dire che la situazione continua a mantenersi pressochè costante
+#Anche nel 2019 ha senso suddividere i paesi in questi due gruppi
 
 #TABELLE CON FREQUENZE RELATIVE ####
 
@@ -579,3 +544,25 @@ summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene 
 #'Grafici con le correlazioni pi? forti o per far vedere l'indipendenza tra coppie di variabili
 #'Eventuale costruzione del modello di regressione
 #'Conclusioni
+
+
+#Grafici alternativi ma mi sa di no####
+pkg <- c("geofacet", "treemapify", "tidyverse","gapminder", "readr")
+sapply(pkg, require, character.only = TRUE)
+
+eu_grid1<-eu_grid1 %>% 
+  mutate(Country=name)
+
+grafico_temporale+ facet_geo(~Country, grid = "eu_grid1", label = "Country")
+
+
+temp1<-temp %>% left_join(dati, by="Country")
+
+#In alternativa per far vedere che l'Est è più povero
+T0<-temp1 %>% filter(Year==2013) %>% 
+  ggplot( aes(area = GDP, fill =GEO, label = Country)) +
+  geom_treemap()+
+  geom_treemap_text(fontface = "italic", colour = "white", place = "centre")+
+  scale_fill_brewer(palette = "Set1")
+T0
+
