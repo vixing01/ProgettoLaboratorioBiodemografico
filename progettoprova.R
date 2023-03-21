@@ -100,7 +100,7 @@ gdp_mis <- ggplot(dati, aes(y=dati$`Qualification mismatch`, x=dati$GDP))+
        x="PIL pro capite",
        title="Qualification mismatch & PIL",
        subtitle="Ogni punto rappresenta un paese europeo",
-       caption="Fonte: OECD")+ 
+       caption="Fonte: OECD e World Bank")+ 
   scale_x_log10(labels=scales::dollar)+
   geom_smooth(method="lm", color="red", se=F)
 gdp_mis
@@ -305,7 +305,7 @@ grafico_temporale<-temp %>%
   facet_wrap(~Country, ncol=6)+
   labs( y="Proporzione di lavoratori correttamente impiegati", x="Anni",
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
-        subtitle="Con lavoratore correttamente impiegato si intende un lavoratore impiegato nel campo per cui si ? formato", 
+        subtitle="Con lavoratore correttamente impiegato si intende un lavoratore impiegato nel campo per cui si è formato", 
         caption="Fonte: OECD")+
   scale_x_continuous(breaks=NULL)
 
@@ -395,7 +395,7 @@ dati_geo <- dati %>% mutate(
       Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "T?rkiye" | Country == "Cyprus" |
+      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
       Country == "Slovenia" | Country == "Malta" ~ 2,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
@@ -486,14 +486,6 @@ matrice_corr>0.7 #correlazioni forti
 #MODELLO MULTIVARIATO####
 
 #Verifica se GDP ha una distribuzione normale
-x <- dati$GDP
-h<-hist(x, breaks=9, col="sienna1")
-xfit<-seq(min(x),max(x),length=40)
-yfit<-dnorm(xfit,mean=mean(x),sd=sd(x))
-yfit <- yfit*diff(h$mids[1:2])*length(x)
-lines(xfit, yfit, col="blue", lwd=2)
-#La distribuzione non ? normale, quindi non ? del tutto corretto utilizzare la regressione lineare. Giusto?
-shapiro.test(dati$GDP)
 
 colnames(dati_senza)
 
@@ -529,11 +521,11 @@ summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene 
 PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
   geom_point(alpha=0.3) +
   theme_minimal() +
-  labs(y="Sottoqualificazione",
+  labs(y="Underqualification",
        x="PIL pro capite",
-       title="Sottoqualificazione & PIL",
+       title="Underqualification & PIL",
        subtitle="Ogni punto rappresenta un paese europeo",
-       caption="Fonte: OECD")+ 
+       caption="Fonte: OECD e World Bank")+ 
   scale_x_log10(labels=scales::dollar)+
   geom_smooth(method="lm", color="red", se=F)
 PIL_under
