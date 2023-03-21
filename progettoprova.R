@@ -94,6 +94,16 @@ gdp_plot <- ggplot(data=dati, aes(x=fct_reorder(Country,GDP), y=GDP)) +
        caption="Fonte: World Bank")
 gdp_plot
 
+gdp_mis <- ggplot(dati, aes(y=dati$`Qualification mismatch`, x=dati$GDP))+
+  geom_point(alpha=0.3)+ theme_minimal()+
+  labs(y="Qualification mismatch",
+       x="PIL pro capite",
+       title="Qualification mismatch & PIL",
+       subtitle="Ogni punto rappresenta un paese europeo",
+       caption="Fonte: OECD")+ 
+  scale_x_log10(labels=scales::dollar)+
+  geom_smooth(method="lm", color="red", se=F)
+gdp_mis
 
 #ANALISI TERRITORIALE ####
 
@@ -239,7 +249,7 @@ summary(dati_c$`Qualification mismatch`)
 summary(dati_c$Overqualification)
 summary(dati_c$Underqualification)
 #La maggior parte dei paesi ha una overqualification del 10-15% e una underqualification del 10-20%
-#L'overqualification risulta essere più spostata verso il basso: guardando le frequenze cumulate tra lo 0 e il 15% troviamo il 56.7% dei paesi per quanto riguarda l'over mentre solo il 36.7% per l'under
+#L'overqualification risulta essere pi? spostata verso il basso: guardando le frequenze cumulate tra lo 0 e il 15% troviamo il 56.7% dei paesi per quanto riguarda l'over mentre solo il 36.7% per l'under
 #Entrambe le variabili, analizzate come continue, hanno il minimo intorno a 8 e il massimo intorno a 30; la media per over ? 15.87 mentre per under ? 17.32
 tab_mismatch<-kable(tab_mismatch, "simple", col.names = c("","Qualification mismatch"))
 tab_mismatch
@@ -254,7 +264,7 @@ tab_scientific <-round(prop.table(table(dati_c$`scientific knowledge_c`))*100,1)
 tab_knowledge<-cbind(tab_arts,tab_law, tab_medicine, tab_technology, tab_scientific)
 tab_knowledge<-kable(tab_knowledge, "simple", col.names = c("Art","Law","Medicine","Technology","Scientific"))
 tab_knowledge
-#La categoria più frequente è sempre l'equilibrio; in nessun paese si rileva un forte surplus mentre nel 10% (Belgio, Danimarca e Spagna) si rileva una forte carenza di conoscenze mediche
+#La categoria pi? frequente ? sempre l'equilibrio; in nessun paese si rileva un forte surplus mentre nel 10% (Belgio, Danimarca e Spagna) si rileva una forte carenza di conoscenze mediche
 #Non sono presenti paesi con carenze riguardanti le conoscenze giuridiche e tecnologiche
 #Non sono presenti paesi con surplus di conoscenze scientifiche
 dati_c %>%  filter(`medicine knowledge_c`=="forte carenza") %>% select(Country)
@@ -278,7 +288,7 @@ summary(dati$GDP)
 #Abbiamo tutti paesi ad alto reddito avendo considerato solo paesi europei, per cui non ha senso suddividere il GDP in classi
 dati_c %>% select(GDP) %>% summarize_all(.funs= list(media  = ~mean(x=., na.rm=T), 
                                                      dev.std = ~sd(x=., na.rm=T)))
-#La media è 47230 mentre la deviazione standard 18948
+#La media ? 47230 mentre la deviazione standard 18948
 
 
 # SERIE TEMPORALE ####
@@ -295,7 +305,7 @@ grafico_temporale<-temp %>%
   facet_wrap(~Country, ncol=6)+
   labs( y="Proporzione di lavoratori correttamente impiegati", x="Anni",
         title="Andamento annuale (2003-2013) della proporzione di lavoratori correttamente impiegati",
-        subtitle="Con lavoratore correttamente impiegato si intende un lavoratore impiegato nel campo per cui si è formato", 
+        subtitle="Con lavoratore correttamente impiegato si intende un lavoratore impiegato nel campo per cui si ? formato", 
         caption="Fonte: OECD")+
   scale_x_continuous(breaks=NULL)
 
@@ -306,7 +316,7 @@ dati_temporale<-temp_wide %>% select("LOCATION", "2013")%>%
   inner_join(dati,by="LOCATION")
 dati_temporale<-dati_temporale %>% select(!c(Country, LOCATION,continent))
 round(cor(dati_temporale),2)[,1]
-#La correlazione con il GDP non è abbastanza forte da giustificare un raggruppamento dei paesi sulla base di esso
+#La correlazione con il GDP non ? abbastanza forte da giustificare un raggruppamento dei paesi sulla base di esso
 #Per questo motivo verranno raggruppati sulla base della loro posizione geografica
 
 #Assegniamo ogni paese alla sua macro-regione
@@ -317,7 +327,7 @@ temp <- temp %>% mutate(
       Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
+      Country == "Spain" | Country == "T?rkiye" | Country == "Cyprus" |
       Country == "Slovenia" | Country == "Malta" ~ 2,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
@@ -385,7 +395,7 @@ dati_geo <- dati %>% mutate(
       Country == "Sweden" | Country == "United Kingdom" | Country == "Estonia" | 
       Country == "Latvia" | Country == "Lithuania" ~ 1,
     Country == "Greece" | Country == "Italy" | Country == "Portugal" |
-      Country == "Spain" | Country == "Türkiye" | Country == "Cyprus" |
+      Country == "Spain" | Country == "T?rkiye" | Country == "Cyprus" |
       Country == "Slovenia" | Country == "Malta" ~ 2,
     Country == "Czech Republic" | Country == "Hungary" | Country == "Poland" | 
       Country == "Slovak Republic" | Country == "Bulgaria" | Country == "Romania" ~ 3,
@@ -443,7 +453,7 @@ temp_geo_2019$Year<-as.numeric(temp_geo_2019$Year)
 tabella<-temp_geo_2019 %>% pivot_wider(names_from="Year", values_from="val_medio")
 
 kable(tabella[,c(1,6,12,13)],"simple", digits = 1)
-#Le oscillazioni ogni 6 anni rimangono entro i 2 punti percentuali, quindi possiamo dire che la situazione continua a mantenersi pressochè costante
+#Le oscillazioni ogni 6 anni rimangono entro i 2 punti percentuali, quindi possiamo dire che la situazione continua a mantenersi pressoch? costante
 #Anche nel 2019 ha senso suddividere i paesi in questi due gruppi
 
 
@@ -453,21 +463,21 @@ dati_senza<-dati %>% select(!c(LOCATION, Country, continent))
 
 matrice_corr<-dati_senza %>% cor()
 kable(round(matrice_corr,2)[,14],"simple", col.names = "GDP")  #Siamo interessate alla correlazione delle nostre variabili con il GDP
-#La correlazione più elevata si ha con Underqualification (0.38)
+#La correlazione pi? elevata si ha con Underqualification (0.38)
 
 #Correlazione delle variabili knowledge
 kable(round(matrice_corr,2)[c(1,5,6,8,9),14],"simple", col.names = "GDP")
-#Si va da una correlazione di 0.32 con le conoscenze giuridiche a una pressochè indipendenza con le conoscenze tecnologiche
+#Si va da una correlazione di 0.32 con le conoscenze giuridiche a una pressoch? indipendenza con le conoscenze tecnologiche
 
 #Correlazione con le variabili skills
 kable(round(matrice_corr,2)[c(2,3,4,7,10),14],"simple", col.names = "GDP")
-#Digital, cognitive e physical skills sono pressochè indipendenti mentre la correlazione più rilevante (0.21) si ha per le skill comunicative
+#Digital, cognitive e physical skills sono pressoch? indipendenti mentre la correlazione pi? rilevante (0.21) si ha per le skill comunicative
 
 #Correlazione con over, under e mismatch
 kable(round(matrice_corr,2)[11:13,14],"simple", col.names = "GDP")
-#La correlazione è positiva per l'underqualification mentre è debolmente negativa per l'overqualification
-#Possibile interpretazione: sprecare persone che hanno studiato mettendole a fare lavori al di sotto della loro preparazione non è positivo per il PIL
-#Mettere persone non preparate a fare lavori per cui non sono qualificate ha una parziale correlazione positiva con il PIL, ma forse per il semplice fatto che nei paesi con elevata underqualification l'istruzione superiore è meno diffusa
+#La correlazione ? positiva per l'underqualification mentre ? debolmente negativa per l'overqualification
+#Possibile interpretazione: sprecare persone che hanno studiato mettendole a fare lavori al di sotto della loro preparazione non ? positivo per il PIL
+#Mettere persone non preparate a fare lavori per cui non sono qualificate ha una parziale correlazione positiva con il PIL, ma forse per il semplice fatto che nei paesi con elevata underqualification l'istruzione superiore ? meno diffusa
 
 corrplot(matrice_corr, method="color",type = "upper")
 matrice_corr>0.7 #correlazioni forti
@@ -482,7 +492,7 @@ xfit<-seq(min(x),max(x),length=40)
 yfit<-dnorm(xfit,mean=mean(x),sd=sd(x))
 yfit <- yfit*diff(h$mids[1:2])*length(x)
 lines(xfit, yfit, col="blue", lwd=2)
-#La distribuzione non è normale, quindi non è del tutto corretto utilizzare la regressione lineare. Giusto?
+#La distribuzione non ? normale, quindi non ? del tutto corretto utilizzare la regressione lineare. Giusto?
 shapiro.test(dati$GDP)
 
 colnames(dati_senza)
@@ -514,7 +524,7 @@ summary(mult_mod_mismatch)
 mod_under<-lm(GDP~Underqualification, data=dati_senza)
 tidy(mod_under)
 summary(mod_under)$r.squared #il modello comunque non si adatta per niente bene ai dati: R^2=0.14
-#L'Underqualification spiega solo il 14% della variabilità del GDP
+#L'Underqualification spiega solo il 14% della variabilit? del GDP
 
 PIL_under <- ggplot(data=dati, aes(y=Underqualification, x=GDP)) +
   geom_point(alpha=0.3) +
@@ -532,7 +542,7 @@ PIL_under
 #Come si potrebbe inserire la disoccupazione in tutto questo?####
 browseURL("https://databank.worldbank.org/reports.aspx?source=2&series=SL.UEM.TOTL.NE.ZS&country=#")
 
-#Percentuale di popolazione nella forza lavoro; classe di età 15-74, valori 2019
+#Percentuale di popolazione nella forza lavoro; classe di et? 15-74, valori 2019
 disoccupazione <- read.csv("disoccupazione_worldbank.csv") %>% 
   rename(LOCATION=Country.Code, unemployment= X2019..YR2019.) %>% 
   select(LOCATION, unemployment) %>% 
@@ -545,12 +555,12 @@ glimpse(disoccupazione)
 dis_senza<-disoccupazione %>% select(!c(LOCATION, Country, continent))
 matrice_corr_dis<-dis_senza %>% cor()
 kable(round(matrice_corr_dis,2)[,14],"simple", col.names = "Disoccupazione")
-#La disoccupazione è associata a molte delle skill e conoscenze, ma in nessun caso l'associazione è forte
-#Anche l'associazione con il GDP, per quanto esistente è abbastanza debole (-0.24)
+#La disoccupazione ? associata a molte delle skill e conoscenze, ma in nessun caso l'associazione ? forte
+#Anche l'associazione con il GDP, per quanto esistente ? abbastanza debole (-0.24)
 
 all_dis<-lm(GDP~., data = dis_senza)
 summary(all_dis)
-#Come conseguenza notiamo che nel modello complessivo il coefficiente relativo alla disoccupazione è non significativo
+#Come conseguenza notiamo che nel modello complessivo il coefficiente relativo alla disoccupazione ? non significativo
 
 mod0_dis<-lm(GDP~1, data = dis_senza)
 summary(mod0_dis)
@@ -613,9 +623,9 @@ ter_senza<-tertiary %>% select(!c(geo, LOCATION, Country, continent))
 cor_ter<-ter_senza %>% cor()
 
 kable(round(cor_ter,2)[,14],"simple", col.names = "% tertiary")
-#I paesi con più persone con educazione terziaria hanno anche più underqualification
-#I paesi con più persone con educazione terziaria hanno un'overqualification più bassa
-#Abbiamo però una correlazione positiva con il GDP
+#I paesi con pi? persone con educazione terziaria hanno anche pi? underqualification
+#I paesi con pi? persone con educazione terziaria hanno un'overqualification pi? bassa
+#Abbiamo per? una correlazione positiva con il GDP
 
 all_ter<-lm(GDP~., data = ter_senza)
 summary(all_ter)
@@ -635,9 +645,9 @@ stats::step(all, scope=list(lower=mod0, upper=all), direction="backward")
 #Risultato:
 lm(formula = GDP ~ `law and public safety knowledge` + `physical skills` + 
      Overqualification + `Qualification mismatch`, data = dati_senza)
-#A differenza della disoccupazione l'educazione terziaria è un buon predittore del PIL e porta a definire un modello diverso
+#A differenza della disoccupazione l'educazione terziaria ? un buon predittore del PIL e porta a definire un modello diverso
 #In questo caso sarebbe addirittura l'unico regressore da tenere
-#Questo sarà probabilmente dovuto al fatto che i nostri dati relativi al mismatch sono complessivi e non suddivisi in base all'educazione raggiunta
+#Questo sar? probabilmente dovuto al fatto che i nostri dati relativi al mismatch sono complessivi e non suddivisi in base all'educazione raggiunta
 
 #STRUTTURA ANALISI ####
 
